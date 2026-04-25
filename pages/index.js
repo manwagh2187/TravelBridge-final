@@ -16,7 +16,7 @@ export default function Home() {
       <div style={{ marginTop: 20 }}>
         {listings?.map(l => (
           <div key={l.id} style={{ border: '1px solid #ddd', padding: 12, marginBottom: 12 }}>
-            <h3><Link href={`/listing/${l.id}`}><a>{l.title}</a></Link></h3>
+            <h3><Link href={`/listing/${l.id}`}>{l.title}</Link></h3>
             <div>{l.city}, {l.country}</div>
             <div>{l.description}</div>
           </div>

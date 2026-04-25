@@ -18,7 +18,7 @@ export default function ListingPage() {
       {listing.rooms.map(room => (
         <div key={room.id} style={{ border:'1px solid #eee', padding: 8, marginBottom: 8 }}>
           <div>{room.title} — {room.capacity} pax — {room.pricePerNight} (in minor currency units)</div>
-          <Link href={`/booking/checkout?roomId=${room.id}`}><a>Book</a></Link>
+          <Link href={`/booking/checkout?roomId=${room.id}`}>Book</Link>
         </div>
       ))}
     </div>
