@@ -1,4 +1,4 @@
-name=prisma/schema.prisma
+run: sed -i '1{/^name=/d}' prisma/schema.prisma
 generator client {
   provider = "prisma-client-js"
 }
