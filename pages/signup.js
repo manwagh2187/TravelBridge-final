@@ -72,7 +72,7 @@ export default function SignupPage() {
           display: grid;
           place-items: center;
           padding: 32px 16px;
-          background: linear-gradient(180deg, #f5f7fb 0%, #edf4ff 100%);
+          background: linear-gradient(180deg, #f5f3ef 0%, #efe8df 100%);
         }
 
         .auth-grid {
@@ -89,8 +89,8 @@ export default function SignupPage() {
 
         .eyebrow {
           display: inline-flex;
-          background: #eff6ff;
-          color: var(--primary);
+          background: #fff7ed;
+          color: #92400e;
           padding: 8px 12px;
           border-radius: 999px;
           font-weight: 800;
@@ -162,7 +162,7 @@ export default function SignupPage() {
         }
 
         .auth-link a {
-          color: var(--primary);
+          color: #b45309;
           font-weight: 800;
         }
 

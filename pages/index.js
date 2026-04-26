@@ -10,21 +10,9 @@ const DESTINATIONS = [
 ];
 
 const FEATURED_DEALS = [
-  {
-    title: 'Weekend escapes',
-    subtitle: 'Save more on short trips',
-    cta: 'Explore deals',
-  },
-  {
-    title: 'Luxury stays',
-    subtitle: 'Premium rooms and suites',
-    cta: 'View luxury',
-  },
-  {
-    title: 'Family travel',
-    subtitle: 'Spacious rooms for everyone',
-    cta: 'See family options',
-  },
+  { title: 'Weekend escapes', subtitle: 'Save more on short trips', cta: 'Explore deals' },
+  { title: 'Luxury stays', subtitle: 'Premium rooms and suites', cta: 'View luxury' },
+  { title: 'Family travel', subtitle: 'Spacious rooms for everyone', cta: 'See family options' },
 ];
 
 const today = new Date().toISOString().split('T')[0];
@@ -108,9 +96,13 @@ export default function Home() {
     mapRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
+  const hasMapFallback = !listings.length;
+
   return (
     <div className="home-page">
       <section className="hero">
+        <div className="hero-glow hero-glow-a" />
+        <div className="hero-glow hero-glow-b" />
         <div className="container hero-grid">
           <div className="hero-copy">
             <div className="eyebrow">Travel smarter, stay better</div>
@@ -118,6 +110,12 @@ export default function Home() {
             <p>
               Compare stays, explore deals, and book your next hotel in a cleaner, faster, more delightful way.
             </p>
+
+            <div className="trust-strip">
+              <div><strong>4.8/5</strong><span>Guest rating</span></div>
+              <div><strong>500+</strong><span>Verified stays</span></div>
+              <div><strong>24/7</strong><span>Support</span></div>
+            </div>
 
             <div className="search-panel">
               <div className="search-field search-wide">
@@ -212,18 +210,9 @@ export default function Home() {
             <p>Trending destinations, clean rooms, and instant checkout flow.</p>
 
             <div className="hero-stats">
-              <div>
-                <strong>4.8/5</strong>
-                <span>Guest rating</span>
-              </div>
-              <div>
-                <strong>24/7</strong>
-                <span>Support</span>
-              </div>
-              <div>
-                <strong>500+</strong>
-                <span>Stays</span>
-              </div>
+              <div><strong>4.8/5</strong><span>Guest rating</span></div>
+              <div><strong>24/7</strong><span>Support</span></div>
+              <div><strong>500+</strong><span>Stays</span></div>
             </div>
           </div>
         </div>
@@ -240,7 +229,7 @@ export default function Home() {
         <div className="featured-grid">
           {FEATURED_DEALS.map((deal) => (
             <div key={deal.title} className="featured-card">
-              <div className="featured-badge">Limited time</div>
+              <div className="featured-icon">{deal.title.charAt(0)}</div>
               <h3>{deal.title}</h3>
               <p>{deal.subtitle}</p>
               <button className="btn btn-outline" type="button">{deal.cta}</button>
@@ -325,12 +314,7 @@ export default function Home() {
                     <Link
                       href={{
                         pathname: `/listing/${listing.id}`,
-                        query: {
-                          checkIn,
-                          checkOut,
-                          guests,
-                          destination,
-                        },
+                        query: { checkIn, checkOut, guests, destination },
                       }}
                       className="btn btn-primary"
                     >
@@ -361,12 +345,21 @@ export default function Home() {
 
         <div className="map-layout">
           <div className="map-panel">
-            <div className="map-placeholder">
-              <div className="map-city">{destination}</div>
-              <div className="map-pin pin-1">Hotel A</div>
-              <div className="map-pin pin-2">Hotel B</div>
-              <div className="map-pin pin-3">Hotel C</div>
-            </div>
+            {hasMapFallback ? (
+              <div className="map-fallback">
+                <div className="map-fallback-icon">📍</div>
+                <div className="map-fallback-title">Map unavailable</div>
+                <p>No live map data is available right now. Please use the nearby stays list below.</p>
+                <div className="map-fallback-note">{destination}</div>
+              </div>
+            ) : (
+              <div className="map-placeholder">
+                <div className="map-city">{destination}</div>
+                <div className="map-pin pin-1">Hotel A</div>
+                <div className="map-pin pin-2">Hotel B</div>
+                <div className="map-pin pin-3">Hotel C</div>
+              </div>
+            )}
           </div>
 
           <aside className="map-list">
@@ -388,38 +381,35 @@ export default function Home() {
 
       <style jsx>{`
         .home-page {
-          background: linear-gradient(180deg, #f5f7fb 0%, #edf4ff 100%);
-        }
-
-        .search-error {
-          margin-top: 14px;
-          background: #fef2f2;
-          color: #b91c1c;
-          padding: 12px 14px;
-          border-radius: 14px;
-          font-weight: 700;
+          background: linear-gradient(180deg, #f5f3ef 0%, #efe8df 100%);
         }
 
         .hero {
-          background:
-            radial-gradient(circle at top left, rgba(37, 99, 235, 0.22), transparent 35%),
-            radial-gradient(circle at top right, rgba(14, 165, 233, 0.18), transparent 28%),
-            linear-gradient(135deg, #0f172a 0%, #1e293b 42%, #111827 100%);
-          color: white;
-          padding: 72px 0 42px;
+          position: relative;
           overflow: hidden;
+          background:
+            radial-gradient(circle at 16% 20%, rgba(251, 191, 36, 0.22), transparent 28%),
+            radial-gradient(circle at 84% 18%, rgba(168, 85, 247, 0.18), transparent 24%),
+            radial-gradient(circle at 70% 78%, rgba(244, 114, 182, 0.10), transparent 22%),
+            linear-gradient(135deg, #121212 0%, #18161f 45%, #101114 100%);
+          color: white;
+          padding: 84px 0 54px;
         }
 
+        .hero-glow { position: absolute; border-radius: 999px; filter: blur(40px); pointer-events: none; opacity: 0.45; }
+        .hero-glow-a { width: 280px; height: 280px; top: -60px; left: 2%; background: rgba(251, 191, 36, 0.38); }
+        .hero-glow-b { width: 340px; height: 340px; right: -100px; top: 10px; background: rgba(168, 85, 247, 0.24); }
+
         .hero-grid {
+          position: relative;
+          z-index: 1;
           display: grid;
           grid-template-columns: 1.7fr 1fr;
           gap: 28px;
           align-items: stretch;
         }
 
-        .hero-copy {
-          padding: 18px 0;
-        }
+        .hero-copy { padding: 18px 0; }
 
         .eyebrow {
           display: inline-flex;
@@ -433,9 +423,9 @@ export default function Home() {
         }
 
         h1 {
-          font-size: clamp(2.8rem, 5vw, 5.3rem);
-          line-height: 0.98;
-          letter-spacing: -0.06em;
+          font-size: clamp(2.8rem, 4.8vw, 5.3rem);
+          line-height: 0.95;
+          letter-spacing: -0.07em;
           margin: 0 0 16px;
           max-width: 11ch;
         }
@@ -447,13 +437,32 @@ export default function Home() {
           max-width: 760px;
         }
 
+        .trust-strip {
+          display: flex;
+          gap: 14px;
+          flex-wrap: wrap;
+          margin-top: 22px;
+        }
+
+        .trust-strip div {
+          min-width: 130px;
+          background: rgba(255,255,255,0.07);
+          border: 1px solid rgba(255,255,255,0.08);
+          padding: 14px 16px;
+          border-radius: 18px;
+          backdrop-filter: blur(10px);
+        }
+
+        .trust-strip strong { display: block; font-size: 1.2rem; margin-bottom: 4px; }
+        .trust-strip span { color: rgba(255,255,255,0.72); font-size: 0.9rem; }
+
         .search-panel {
           margin-top: 28px;
-          background: rgba(255,255,255,0.96);
-          border: 1px solid rgba(226,232,240,0.85);
-          border-radius: 30px;
-          box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
-          padding: 18px;
+          background: rgba(255,255,255,0.98);
+          border: 1px solid rgba(255,255,255,0.7);
+          border-radius: 34px;
+          box-shadow: 0 30px 80px rgba(0, 0, 0, 0.24);
+          padding: 20px;
           display: grid;
           grid-template-columns: 1.5fr 1fr 1fr 0.8fr 0.9fr auto;
           gap: 12px;
@@ -461,9 +470,7 @@ export default function Home() {
           color: var(--text);
         }
 
-        .search-wide {
-          min-width: 0;
-        }
+        .search-wide { min-width: 0; }
 
         .search-field label {
           display: block;
@@ -482,12 +489,21 @@ export default function Home() {
           font-size: 1rem;
           outline: none;
           background: white;
+          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .search-field input:focus,
+        .search-field select:focus {
+          border-color: rgba(245, 158, 11, 0.45);
+          box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.08);
         }
 
         .search-btn {
           height: 54px;
           padding-inline: 24px;
           white-space: nowrap;
+          box-shadow: 0 14px 30px rgba(217, 119, 6, 0.24);
+          background: linear-gradient(135deg, #f59e0b, #f97316);
         }
 
         .chips {
@@ -498,41 +514,38 @@ export default function Home() {
         }
 
         .chip {
-          border: 1px solid rgba(255,255,255,0.18);
+          border: 1px solid rgba(255,255,255,0.16);
           background: rgba(255,255,255,0.08);
-          padding: 10px 14px;
+          padding: 11px 15px;
           border-radius: 999px;
           cursor: pointer;
           font-weight: 700;
-          color: rgba(255,255,255,0.82);
+          color: rgba(255,255,255,0.84);
           backdrop-filter: blur(12px);
+          transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease;
         }
 
-        .chip.active {
-          background: white;
-          color: #111827;
-          border-color: white;
-        }
+        .chip:hover { transform: translateY(-1px); }
+        .chip.active { background: white; color: #111827; border-color: white; }
 
         .hero-card {
-          background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.06));
-          border: 1px solid rgba(255,255,255,0.14);
+          background: linear-gradient(180deg, rgba(255,255,255,0.18), rgba(255,255,255,0.08));
+          border: 1px solid rgba(255,255,255,0.16);
           color: white;
           border-radius: 30px;
-          padding: 26px;
-          box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
+          padding: 28px;
+          box-shadow: 0 30px 80px rgba(0, 0, 0, 0.22);
           align-self: center;
-          backdrop-filter: blur(14px);
+          backdrop-filter: blur(16px);
         }
 
         .hero-card h3 {
-          font-size: 1.8rem;
+          font-size: 1.9rem;
           margin: 16px 0 10px;
+          letter-spacing: -0.03em;
         }
 
-        .hero-card p {
-          color: rgba(255,255,255,0.74);
-        }
+        .hero-card p { color: rgba(255,255,255,0.76); line-height: 1.75; }
 
         .hero-card-badge,
         .featured-badge,
@@ -552,21 +565,14 @@ export default function Home() {
         }
 
         .hero-stats div {
-          background: rgba(255,255,255,0.08);
+          background: rgba(255,255,255,0.07);
           padding: 14px;
           border-radius: 16px;
+          border: 1px solid rgba(255,255,255,0.08);
         }
 
-        .hero-stats strong {
-          display: block;
-          font-size: 1.4rem;
-          margin-bottom: 4px;
-        }
-
-        .hero-stats span {
-          color: rgba(255,255,255,0.7);
-          font-size: 0.92rem;
-        }
+        .hero-stats strong { display: block; font-size: 1.4rem; margin-bottom: 4px; }
+        .hero-stats span { color: rgba(255,255,255,0.7); font-size: 0.92rem; }
 
         .deals-section,
         .section,
@@ -590,7 +596,7 @@ export default function Home() {
         }
 
         .section-kicker {
-          color: var(--primary);
+          color: #d97706;
           font-weight: 900;
           text-transform: uppercase;
           letter-spacing: 0.08em;
@@ -622,21 +628,50 @@ export default function Home() {
 
         .featured-card {
           background: white;
-          border-radius: 24px;
-          padding: 22px;
+          border-radius: 26px;
+          padding: 24px;
           box-shadow: var(--shadow);
           border: 1px solid rgba(226,232,240,0.85);
+          position: relative;
+          overflow: hidden;
+        }
+
+        .featured-card::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(135deg, rgba(245,158,11,0.08), transparent 55%);
+          pointer-events: none;
+        }
+
+        .featured-icon {
+          width: 44px;
+          height: 44px;
+          border-radius: 14px;
+          display: grid;
+          place-items: center;
+          background: linear-gradient(135deg, #fef3c7, #fde68a);
+          color: #92400e;
+          font-weight: 900;
+          position: relative;
+          z-index: 1;
         }
 
         .featured-card h3 {
           margin: 14px 0 8px;
           font-size: 1.3rem;
+          position: relative;
+          z-index: 1;
         }
 
         .featured-card p {
           color: var(--muted);
           margin: 0 0 18px;
+          position: relative;
+          z-index: 1;
         }
+
+        .featured-card button { position: relative; z-index: 1; }
 
         .hotel-grid {
           display: grid;
@@ -653,11 +688,16 @@ export default function Home() {
           display: grid;
           grid-template-columns: 360px 1fr;
           cursor: pointer;
+          transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
         }
 
-        .hotel-card.selected {
-          outline: 3px solid rgba(37, 99, 235, 0.35);
+        .hotel-card:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 24px 60px rgba(15, 23, 42, 0.16);
+          border-color: rgba(245, 158, 11, 0.25);
         }
+
+        .hotel-card.selected { outline: 3px solid rgba(217, 119, 6, 0.25); }
 
         .hotel-image {
           position: relative;
@@ -677,8 +717,8 @@ export default function Home() {
           display: grid;
           place-items: center;
           font-weight: 900;
-          color: #1d4ed8;
-          background: linear-gradient(135deg, #dbeafe, #e0f2fe);
+          color: #b45309;
+          background: linear-gradient(135deg, #fef3c7, #fde68a);
           font-size: 1.8rem;
         }
 
@@ -698,7 +738,7 @@ export default function Home() {
           position: absolute;
           bottom: 16px;
           left: 16px;
-          background: rgba(15,23,42,0.8);
+          background: rgba(15,23,42,0.85);
           color: white;
         }
 
@@ -717,10 +757,7 @@ export default function Home() {
           align-items: center;
         }
 
-        .location {
-          color: var(--primary);
-          font-weight: 800;
-        }
+        .location { color: #b45309; font-weight: 800; }
 
         .rating {
           padding: 8px 12px;
@@ -781,9 +818,10 @@ export default function Home() {
         }
 
         .price {
-          font-size: 2rem;
+          font-size: 2.1rem;
           font-weight: 900;
           letter-spacing: -0.03em;
+          color: #0f172a;
         }
 
         .per-night {
@@ -820,16 +858,54 @@ export default function Home() {
           position: relative;
           min-height: 420px;
           background:
-            radial-gradient(circle at center, rgba(59, 130, 246, 0.2), transparent 35%),
-            linear-gradient(135deg, #dbeafe, #f8fafc);
+            radial-gradient(circle at center, rgba(245, 158, 11, 0.18), transparent 35%),
+            linear-gradient(135deg, #fff7ed, #f8fafc);
           display: grid;
           place-items: center;
+        }
+
+        .map-fallback {
+          min-height: 420px;
+          display: grid;
+          place-items: center;
+          text-align: center;
+          padding: 28px;
+          background: linear-gradient(135deg, #fff7ed, #faf5ee);
+        }
+
+        .map-fallback-icon {
+          font-size: 2.5rem;
+          margin-bottom: 8px;
+        }
+
+        .map-fallback-title {
+          font-size: 1.4rem;
+          font-weight: 900;
+          margin-bottom: 8px;
+          color: #92400e;
+        }
+
+        .map-fallback p {
+          margin: 0;
+          max-width: 36ch;
+          color: var(--muted);
+          line-height: 1.7;
+        }
+
+        .map-fallback-note {
+          margin-top: 12px;
+          padding: 8px 12px;
+          background: white;
+          border: 1px solid #fde68a;
+          border-radius: 999px;
+          font-weight: 800;
+          color: #92400e;
         }
 
         .map-city {
           font-size: 2.5rem;
           font-weight: 900;
-          color: #1d4ed8;
+          color: #b45309;
         }
 
         .map-pin {
@@ -856,12 +932,18 @@ export default function Home() {
         .map-item {
           width: 100%;
           text-align: left;
-          background: #f8fafc;
-          border: 1px solid var(--line);
+          background: #fff7ed;
+          border: 1px solid #fde68a;
           border-radius: 18px;
           padding: 14px;
           margin-bottom: 12px;
           cursor: pointer;
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .map-item:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
         }
 
         .map-item strong {
@@ -911,6 +993,10 @@ export default function Home() {
 
           .hero {
             padding-top: 56px;
+          }
+
+          h1 {
+            max-width: 10ch;
           }
         }
       `}</style>

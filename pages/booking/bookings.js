@@ -66,7 +66,7 @@ export default function BookingsPage() {
 
       <style jsx>{`
         .bookings-shell {
-          background: linear-gradient(180deg, #f5f7fb 0%, #edf4ff 100%);
+          background: linear-gradient(180deg, #f5f3ef 0%, #efe8df 100%);
           min-height: 100vh;
           padding-bottom: 64px;
         }
@@ -81,8 +81,8 @@ export default function BookingsPage() {
 
         .badge {
           display: inline-flex;
-          background: #eff6ff;
-          color: var(--primary);
+          background: #fff7ed;
+          color: #92400e;
           padding: 8px 12px;
           border-radius: 999px;
           font-weight: 800;
@@ -177,7 +177,7 @@ export default function BookingsPage() {
           font-weight: 900;
           font-size: 1.6rem;
           letter-spacing: -0.03em;
-          color: var(--primary);
+          color: #b45309;
           text-align: right;
         }
 

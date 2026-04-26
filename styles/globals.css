@@ -1,13 +1,13 @@
 :root {
-  --bg: #f5f7fb;
-  --surface: #ffffff;
-  --text: #0f172a;
-  --muted: #64748b;
-  --line: #e2e8f0;
-  --primary: #2563eb;
-  --primary-dark: #1d4ed8;
-  --accent: #0ea5e9;
-  --shadow: 0 16px 40px rgba(15, 23, 42, 0.10);
+  --bg: #f5f1eb;
+  --surface: #fffaf3;
+  --text: #111111;
+  --muted: #6b7280;
+  --line: #eadfce;
+  --primary: #d97706;
+  --primary-dark: #b45309;
+  --accent: #a855f7;
+  --shadow: 0 16px 40px rgba(120, 86, 32, 0.12);
   --radius: 20px;
 }
 
@@ -46,9 +46,9 @@ button, input, select {
   position: sticky;
   top: 0;
   z-index: 50;
-  background: rgba(255,255,255,0.9);
+  background: rgba(255, 250, 243, 0.9);
   backdrop-filter: blur(18px);
-  border-bottom: 1px solid rgba(226,232,240,0.8);
+  border-bottom: 1px solid rgba(234, 223, 206, 0.9);
 }
 
 .topbar-inner {
@@ -63,6 +63,7 @@ button, input, select {
   font-size: 1.6rem;
   font-weight: 900;
   letter-spacing: -0.02em;
+  color: #111111;
 }
 
 .nav {
@@ -91,7 +92,7 @@ button, input, select {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--primary), var(--accent));
+  background: linear-gradient(135deg, var(--primary), #f59e0b);
   color: white;
   box-shadow: var(--shadow);
 }
@@ -106,10 +107,15 @@ button, input, select {
   color: var(--text);
 }
 
+.btn-outline:hover {
+  background: #fff7ed;
+  border-color: #f3c97a;
+}
+
 .user-pill {
   padding: 10px 14px;
-  background: #eff6ff;
-  color: #1d4ed8;
+  background: #fff7ed;
+  color: #92400e;
   border-radius: 999px;
   font-weight: 700;
 }

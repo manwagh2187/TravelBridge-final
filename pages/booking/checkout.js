@@ -189,7 +189,7 @@ export default function Checkout() {
 
       <style jsx>{`
         .checkout-shell {
-          background: linear-gradient(180deg, #f5f7fb 0%, #edf4ff 100%);
+          background: linear-gradient(180deg, #f5f3ef 0%, #efe8df 100%);
           min-height: 100vh;
           padding-bottom: 64px;
         }
@@ -217,8 +217,8 @@ export default function Checkout() {
         .badge,
         .summary-badge {
           display: inline-flex;
-          background: #eff6ff;
-          color: var(--primary);
+          background: #fff7ed;
+          color: #92400e;
           padding: 8px 12px;
           border-radius: 999px;
           font-weight: 800;
@@ -265,8 +265,8 @@ export default function Checkout() {
 
         .notice {
           margin: 18px 0;
-          background: #f8fafc;
-          border: 1px solid var(--line);
+          background: #fff7ed;
+          border: 1px solid #fde68a;
           border-radius: 18px;
           padding: 14px 16px;
           color: var(--text);
@@ -291,7 +291,7 @@ export default function Checkout() {
         }
 
         .back-link a {
-          color: var(--primary);
+          color: #b45309;
           font-weight: 800;
         }
 
@@ -332,7 +332,7 @@ export default function Checkout() {
 
         .total-row strong {
           font-size: 1.4rem;
-          color: var(--primary);
+          color: #b45309;
         }
 
         .summary-features {

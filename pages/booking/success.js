@@ -31,7 +31,7 @@ export default function SuccessPage() {
       <style jsx>{`
         .result-shell {
           min-height: 100vh;
-          background: linear-gradient(180deg, #f5f7fb 0%, #edf4ff 100%);
+          background: linear-gradient(180deg, #f5f3ef 0%, #efe8df 100%);
           display: grid;
           place-items: center;
           padding: 40px 0;
@@ -66,8 +66,8 @@ export default function SuccessPage() {
 
         .result-badge {
           display: inline-flex;
-          background: #eff6ff;
-          color: var(--primary);
+          background: #fff7ed;
+          color: #92400e;
           padding: 8px 12px;
           border-radius: 999px;
           font-weight: 800;

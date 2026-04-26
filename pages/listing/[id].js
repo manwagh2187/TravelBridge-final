@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import useSWR from 'swr';
 import Link from 'next/link';
@@ -12,6 +12,7 @@ export default function ListingPage() {
   const { id, checkIn, checkOut, guests, destination } = router.query;
   const { isAuthenticated } = useAuth();
   const [activeImage, setActiveImage] = useState(0);
+  const mapRef = useRef(null);
 
   const { data } = useSWR('/api/listings', fetcher);
   const listings = Array.isArray(data) ? data : [];
@@ -31,6 +32,10 @@ export default function ListingPage() {
   }, [listing]);
 
   const rooms = Array.isArray(listing?.rooms) ? listing.rooms : [];
+
+  function handleShowMap() {
+    mapRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 
   if (!listing) {
     return <div className="container page-load">Loading...</div>;
@@ -92,6 +97,10 @@ export default function ListingPage() {
               <li>Instant confirmation</li>
               <li>Secure payment flow</li>
             </ul>
+
+            <button className="btn btn-outline full" type="button" onClick={handleShowMap}>
+              View on map
+            </button>
 
             {isAuthenticated ? (
               <Link href={`/booking/checkout?roomId=${rooms[0]?.id || ''}`} className="btn btn-primary full">
@@ -187,11 +196,50 @@ export default function ListingPage() {
             </div>
           </aside>
         </div>
+
+        <div className="map-section" ref={mapRef}>
+          <div className="section-head">
+            <div>
+              <div className="section-kicker">Map view</div>
+              <h2>{listing.city} map</h2>
+              <p>Click on the “View on map” button to jump here.</p>
+            </div>
+          </div>
+
+          <div className="map-layout">
+            <div className="map-panel">
+              <div className="map-fallback">
+                <div className="map-fallback-icon">📍</div>
+                <div className="map-fallback-title">Map preview unavailable</div>
+                <p>
+                  We don’t have live map data for this property yet. Use the location details
+                  and nearby context to plan your stay.
+                </p>
+                <div className="map-fallback-note">{listing.city}, {listing.country}</div>
+              </div>
+            </div>
+
+            <aside className="map-list">
+              <h3>Nearby stays</h3>
+              {rooms.slice(0, 3).map((room) => (
+                <button
+                  key={room.id}
+                  type="button"
+                  className="map-item"
+                  onClick={() => setActiveImage(0)}
+                >
+                  <strong>{room.title}</strong>
+                  <span>{listing.city}, {listing.country}</span>
+                </button>
+              ))}
+            </aside>
+          </div>
+        </div>
       </div>
 
       <style jsx>{`
         .listing-shell {
-          background: linear-gradient(180deg, #f5f7fb 0%, #edf4ff 100%);
+          background: linear-gradient(180deg, #f5f3ef 0%, #efe8df 100%);
           min-height: 100vh;
           padding-bottom: 64px;
         }
@@ -210,7 +258,7 @@ export default function ListingPage() {
         }
 
         .breadcrumb a {
-          color: var(--primary);
+          color: #b45309;
           font-weight: 700;
         }
 
@@ -223,9 +271,9 @@ export default function ListingPage() {
 
         .search-context span {
           display: inline-flex;
-          background: #eff6ff;
-          color: var(--primary);
-          border: 1px solid rgba(37, 99, 235, 0.12);
+          background: #fff7ed;
+          color: #92400e;
+          border: 1px solid #fde68a;
           padding: 8px 12px;
           border-radius: 999px;
           font-weight: 800;
@@ -268,8 +316,8 @@ export default function ListingPage() {
           place-items: center;
           font-size: 2rem;
           font-weight: 900;
-          background: linear-gradient(135deg, #dbeafe, #f8fafc);
-          color: #1d4ed8;
+          background: linear-gradient(135deg, #fef3c7, #f8fafc);
+          color: #b45309;
         }
 
         .thumb-row {
@@ -292,7 +340,7 @@ export default function ListingPage() {
         }
 
         .thumb.active {
-          outline: 3px solid var(--primary);
+          outline: 3px solid #d97706;
           opacity: 1;
         }
 
@@ -315,8 +363,8 @@ export default function ListingPage() {
 
         .sticky-badge {
           display: inline-flex;
-          background: #eff6ff;
-          color: var(--primary);
+          background: #fff7ed;
+          color: #b45309;
           padding: 8px 12px;
           border-radius: 999px;
           font-weight: 800;
@@ -365,7 +413,7 @@ export default function ListingPage() {
         }
 
         .crumb-text {
-          color: var(--primary);
+          color: #b45309;
           font-weight: 900;
           margin-bottom: 8px;
         }
@@ -394,8 +442,8 @@ export default function ListingPage() {
         .room-tags span {
           padding: 8px 12px;
           border-radius: 999px;
-          background: #f8fafc;
-          border: 1px solid var(--line);
+          background: #fff7ed;
+          border: 1px solid #fde68a;
           font-weight: 700;
           color: #0f172a;
           font-size: 0.9rem;
@@ -403,7 +451,7 @@ export default function ListingPage() {
 
         .score-card {
           min-width: 220px;
-          background: #eff6ff;
+          background: #fff7ed;
           border-radius: 20px;
           padding: 16px;
           display: flex;
@@ -415,7 +463,7 @@ export default function ListingPage() {
           width: 54px;
           height: 54px;
           border-radius: 16px;
-          background: #1d4ed8;
+          background: #d97706;
           color: white;
           display: grid;
           place-items: center;
@@ -511,9 +559,103 @@ export default function ListingPage() {
           line-height: 2;
         }
 
+        .map-section {
+          margin-top: 28px;
+        }
+
+        .map-layout {
+          display: grid;
+          grid-template-columns: minmax(0, 1.5fr) 320px;
+          gap: 18px;
+          align-items: start;
+        }
+
+        .map-panel,
+        .map-list {
+          background: white;
+          border-radius: 28px;
+          box-shadow: var(--shadow);
+          border: 1px solid rgba(226,232,240,0.85);
+          overflow: hidden;
+        }
+
+        .map-fallback {
+          min-height: 420px;
+          display: grid;
+          place-items: center;
+          text-align: center;
+          padding: 28px;
+          background: linear-gradient(135deg, #fff7ed, #faf5ee);
+        }
+
+        .map-fallback-icon {
+          font-size: 2.5rem;
+          margin-bottom: 8px;
+        }
+
+        .map-fallback-title {
+          font-size: 1.4rem;
+          font-weight: 900;
+          margin-bottom: 8px;
+          color: #92400e;
+        }
+
+        .map-fallback p {
+          margin: 0;
+          max-width: 36ch;
+          color: var(--muted);
+          line-height: 1.7;
+        }
+
+        .map-fallback-note {
+          margin-top: 12px;
+          padding: 8px 12px;
+          background: white;
+          border: 1px solid #fde68a;
+          border-radius: 999px;
+          font-weight: 800;
+          color: #92400e;
+        }
+
+        .map-list {
+          padding: 20px;
+        }
+
+        .map-list h3 {
+          margin-top: 0;
+        }
+
+        .map-item {
+          width: 100%;
+          text-align: left;
+          background: #fff7ed;
+          border: 1px solid #fde68a;
+          border-radius: 18px;
+          padding: 14px;
+          margin-bottom: 12px;
+          cursor: pointer;
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .map-item:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+        }
+
+        .map-item strong {
+          display: block;
+          margin-bottom: 6px;
+        }
+
+        .map-item span {
+          color: var(--muted);
+          font-size: 0.95rem;
+        }
+
         @media (max-width: 1100px) {
           .listing-hero,
-          .content-grid {
+          .content-grid,
+          .map-layout {
             grid-template-columns: 1fr;
           }
 
