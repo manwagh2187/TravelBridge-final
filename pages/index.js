@@ -9,11 +9,36 @@ const DESTINATIONS = [
   'Bangkok', 'Singapore', 'Dubai', 'Tokyo', 'Bali', 'London', 'Paris', 'New York'
 ];
 
+const FEATURED_DEALS = [
+  {
+    title: 'Weekend escapes',
+    subtitle: 'Save more on short trips',
+    cta: 'Explore deals',
+  },
+  {
+    title: 'Luxury stays',
+    subtitle: 'Premium rooms and suites',
+    cta: 'View luxury',
+  },
+  {
+    title: 'Family travel',
+    subtitle: 'Spacious rooms for everyone',
+    cta: 'See family options',
+  },
+];
+
 export default function Home() {
-  const [city, setCity] = useState('Bangkok');
+  const [destination, setDestination] = useState('Bangkok');
+  const [checkIn, setCheckIn] = useState('');
+  const [checkOut, setCheckOut] = useState('');
+  const [guests, setGuests] = useState(2);
   const [selectedSort, setSelectedSort] = useState('recommended');
 
-  const { data } = useSWR(`/api/listings?city=${encodeURIComponent(city)}`, fetcher);
+  const { data } = useSWR(
+    `/api/listings?city=${encodeURIComponent(destination)}`,
+    fetcher
+  );
+
   const listings = Array.isArray(data) ? data : [];
 
   const sortedListings = useMemo(() => {
@@ -27,27 +52,56 @@ export default function Home() {
   }, [listings, selectedSort]);
 
   return (
-    <div>
+    <div className="home-page">
       <section className="hero">
         <div className="container hero-grid">
           <div className="hero-copy">
-            <div className="eyebrow">Find hotels, stays and deals</div>
-            <h1>Book your next stay with a modern travel experience</h1>
+            <div className="eyebrow">Travel smarter, stay better</div>
+            <h1>Find your perfect stay with a modern travel experience</h1>
             <p>
-              Search top properties, compare room types, and complete booking in seconds.
+              Compare stays, explore deals, and book your next hotel in a cleaner, faster, more delightful way.
             </p>
 
             <div className="search-panel">
-              <div className="search-field">
+              <div className="search-field search-wide">
                 <label>Destination</label>
                 <input
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  placeholder="Where are you going?"
+                  value={destination}
+                  onChange={(e) => setDestination(e.target.value)}
+                  placeholder="Enter city or hotel"
                 />
               </div>
 
               <div className="search-field">
+                <label>Check-in</label>
+                <input
+                  type="date"
+                  value={checkIn}
+                  onChange={(e) => setCheckIn(e.target.value)}
+                />
+              </div>
+
+              <div className="search-field">
+                <label>Check-out</label>
+                <input
+                  type="date"
+                  value={checkOut}
+                  onChange={(e) => setCheckOut(e.target.value)}
+                />
+              </div>
+
+              <div className="search-field">
+                <label>Guests</label>
+                <select value={guests} onChange={(e) => setGuests(Number(e.target.value))}>
+                  <option value={1}>1 guest</option>
+                  <option value={2}>2 guests</option>
+                  <option value={3}>3 guests</option>
+                  <option value={4}>4 guests</option>
+                  <option value={5}>5 guests</option>
+                </select>
+              </div>
+
+              <div className="search-field sort-field">
                 <label>Sort by</label>
                 <select value={selectedSort} onChange={e => setSelectedSort(e.target.value)}>
                   <option value="recommended">Recommended</option>
@@ -63,7 +117,11 @@ export default function Home() {
 
             <div className="chips">
               {DESTINATIONS.map((d) => (
-                <button key={d} className={`chip ${d === city ? 'active' : ''}`} onClick={() => setCity(d)}>
+                <button
+                  key={d}
+                  className={`chip ${d === destination ? 'active' : ''}`}
+                  onClick={() => setDestination(d)}
+                >
                   {d}
                 </button>
               ))}
@@ -74,6 +132,7 @@ export default function Home() {
             <div className="hero-card-badge">Best deals today</div>
             <h3>Save more when you book early</h3>
             <p>Trending destinations, clean rooms, and instant checkout flow.</p>
+
             <div className="hero-stats">
               <div>
                 <strong>4.8/5</strong>
@@ -92,10 +151,31 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="container deals-section">
+        <div className="section-head">
+          <div>
+            <div className="section-kicker">Featured</div>
+            <h2>Top travel deals</h2>
+          </div>
+        </div>
+
+        <div className="featured-grid">
+          {FEATURED_DEALS.map((deal) => (
+            <div key={deal.title} className="featured-card">
+              <div className="featured-badge">Limited time</div>
+              <h3>{deal.title}</h3>
+              <p>{deal.subtitle}</p>
+              <button className="btn btn-outline">{deal.cta}</button>
+            </div>
+          ))}
+        </div>
+      </section>
+
       <section className="container section">
         <div className="section-head">
           <div>
-            <h2>Stays in {city}</h2>
+            <div className="section-kicker">Explore</div>
+            <h2>Stays in {destination}</h2>
             <p>Modern hotel cards, room details, and booking flow.</p>
           </div>
           <div className="result-count">{sortedListings.length} properties</div>
@@ -118,6 +198,7 @@ export default function Home() {
                 <div className="hotel-image">
                   {cover ? <img src={cover} alt={listing.title} /> : <div className="placeholder">TravelBridge</div>}
                   <div className="deal-badge">Deal</div>
+                  <div className="image-tag">Popular</div>
                 </div>
 
                 <div className="hotel-body">
@@ -129,9 +210,16 @@ export default function Home() {
                   <h3>{listing.title}</h3>
                   <p>{listing.description}</p>
 
+                  <div className="benefits">
+                    <span>Free cancellation</span>
+                    <span>Breakfast available</span>
+                    <span>Pay at property</span>
+                  </div>
+
                   <div className="room-meta">
                     <span>{listing.rooms?.length || 0} room types</span>
                     <span>{firstRoom ? `${firstRoom.capacity} pax room` : 'No rooms'}</span>
+                    <span>Up to {guests} guests</span>
                   </div>
 
                   <div className="hotel-footer">
@@ -159,58 +247,73 @@ export default function Home() {
       </section>
 
       <style jsx>{`
+        .home-page {
+          background: linear-gradient(180deg, #f5f7fb 0%, #edf4ff 100%);
+        }
+
         .hero {
-          background: radial-gradient(circle at top left, #dbeafe 0%, #f5f7fb 48%, #eef2ff 100%);
-          padding: 56px 0 32px;
+          background:
+            radial-gradient(circle at top left, rgba(37, 99, 235, 0.22), transparent 35%),
+            radial-gradient(circle at top right, rgba(14, 165, 233, 0.18), transparent 28%),
+            linear-gradient(135deg, #0f172a 0%, #1e293b 42%, #111827 100%);
+          color: white;
+          padding: 72px 0 42px;
+          overflow: hidden;
         }
 
         .hero-grid {
           display: grid;
-          grid-template-columns: 1.6fr 1fr;
-          gap: 24px;
+          grid-template-columns: 1.7fr 1fr;
+          gap: 28px;
           align-items: stretch;
         }
 
         .hero-copy {
-          padding: 22px 0;
+          padding: 18px 0;
         }
 
         .eyebrow {
           display: inline-flex;
           padding: 8px 14px;
           border-radius: 999px;
-          background: rgba(37,99,235,0.10);
-          color: var(--primary);
+          background: rgba(255,255,255,0.12);
+          color: white;
           font-weight: 800;
           margin-bottom: 18px;
+          backdrop-filter: blur(10px);
         }
 
         h1 {
-          font-size: clamp(2.4rem, 4vw, 4.6rem);
-          line-height: 1;
-          letter-spacing: -0.05em;
+          font-size: clamp(2.8rem, 5vw, 5.3rem);
+          line-height: 0.98;
+          letter-spacing: -0.06em;
           margin: 0 0 16px;
           max-width: 11ch;
         }
 
-        p {
-          color: var(--muted);
+        .hero-copy p {
+          color: rgba(255,255,255,0.78);
           font-size: 1.05rem;
-          line-height: 1.7;
-          max-width: 720px;
+          line-height: 1.8;
+          max-width: 760px;
         }
 
         .search-panel {
-          margin-top: 26px;
-          background: rgba(255,255,255,0.92);
-          border: 1px solid rgba(226,232,240,0.9);
-          border-radius: 28px;
-          box-shadow: var(--shadow);
+          margin-top: 28px;
+          background: rgba(255,255,255,0.96);
+          border: 1px solid rgba(226,232,240,0.85);
+          border-radius: 30px;
+          box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
           padding: 18px;
           display: grid;
-          grid-template-columns: 1.3fr 1fr auto;
-          gap: 14px;
+          grid-template-columns: 1.5fr 1fr 1fr 0.8fr 0.9fr auto;
+          gap: 12px;
           align-items: end;
+          color: var(--text);
+        }
+
+        .search-wide {
+          min-width: 0;
         }
 
         .search-field label {
@@ -235,6 +338,7 @@ export default function Home() {
         .search-btn {
           height: 54px;
           padding-inline: 24px;
+          white-space: nowrap;
         }
 
         .chips {
@@ -245,28 +349,31 @@ export default function Home() {
         }
 
         .chip {
-          border: 1px solid var(--line);
-          background: white;
+          border: 1px solid rgba(255,255,255,0.18);
+          background: rgba(255,255,255,0.08);
           padding: 10px 14px;
           border-radius: 999px;
           cursor: pointer;
           font-weight: 700;
-          color: var(--muted);
+          color: rgba(255,255,255,0.82);
+          backdrop-filter: blur(12px);
         }
 
         .chip.active {
-          background: #111827;
-          color: white;
-          border-color: #111827;
+          background: white;
+          color: #111827;
+          border-color: white;
         }
 
         .hero-card {
-          background: linear-gradient(180deg, #111827, #1f2937);
+          background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.06));
+          border: 1px solid rgba(255,255,255,0.14);
           color: white;
           border-radius: 30px;
           padding: 26px;
-          box-shadow: var(--shadow);
+          box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
           align-self: center;
+          backdrop-filter: blur(14px);
         }
 
         .hero-card h3 {
@@ -275,10 +382,12 @@ export default function Home() {
         }
 
         .hero-card p {
-          color: rgba(255,255,255,0.75);
+          color: rgba(255,255,255,0.74);
         }
 
-        .hero-card-badge {
+        .hero-card-badge,
+        .featured-badge,
+        .image-tag {
           display: inline-flex;
           background: rgba(255,255,255,0.12);
           padding: 8px 12px;
@@ -310,6 +419,7 @@ export default function Home() {
           font-size: 0.92rem;
         }
 
+        .deals-section,
         .section {
           padding: 34px 0 72px;
         }
@@ -322,14 +432,53 @@ export default function Home() {
           margin-bottom: 18px;
         }
 
+        .section-kicker {
+          color: var(--primary);
+          font-weight: 900;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          font-size: 0.78rem;
+          margin-bottom: 8px;
+        }
+
         .section-head h2 {
           margin: 0;
           font-size: 2rem;
+          letter-spacing: -0.03em;
+        }
+
+        .section-head p {
+          margin: 8px 0 0;
+          color: var(--muted);
         }
 
         .result-count {
           color: var(--muted);
           font-weight: 700;
+        }
+
+        .featured-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 16px;
+        }
+
+        .featured-card {
+          background: white;
+          border-radius: 24px;
+          padding: 22px;
+          box-shadow: var(--shadow);
+          border: 1px solid rgba(226,232,240,0.85);
+        }
+
+        .featured-card h3 {
+          margin: 14px 0 8px;
+          font-size: 1.3rem;
+        }
+
+        .featured-card p {
+          color: var(--muted);
+          margin: 0 0 18px;
         }
 
         .hotel-grid {
@@ -341,11 +490,11 @@ export default function Home() {
         .hotel-card {
           background: white;
           border: 1px solid rgba(226,232,240,0.9);
-          border-radius: 28px;
+          border-radius: 30px;
           overflow: hidden;
           box-shadow: var(--shadow);
           display: grid;
-          grid-template-columns: 320px 1fr;
+          grid-template-columns: 360px 1fr;
         }
 
         .hotel-image {
@@ -362,7 +511,7 @@ export default function Home() {
 
         .placeholder {
           height: 100%;
-          min-height: 280px;
+          min-height: 320px;
           display: grid;
           place-items: center;
           font-weight: 900;
@@ -381,6 +530,14 @@ export default function Home() {
           font-weight: 900;
           padding: 7px 10px;
           border-radius: 999px;
+        }
+
+        .image-tag {
+          position: absolute;
+          bottom: 16px;
+          left: 16px;
+          background: rgba(15,23,42,0.8);
+          color: white;
         }
 
         .hotel-body {
@@ -414,11 +571,30 @@ export default function Home() {
         .hotel-body h3 {
           margin: 10px 0 8px;
           font-size: 1.5rem;
+          letter-spacing: -0.02em;
         }
 
         .hotel-body p {
           margin: 0;
           max-width: 70ch;
+          color: var(--muted);
+          line-height: 1.7;
+        }
+
+        .benefits {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+        }
+
+        .benefits span {
+          padding: 8px 12px;
+          border-radius: 999px;
+          background: #f8fafc;
+          color: #0f172a;
+          font-weight: 700;
+          border: 1px solid var(--line);
+          font-size: 0.9rem;
         }
 
         .room-meta {
@@ -462,20 +638,42 @@ export default function Home() {
           color: var(--muted);
         }
 
-        @media (max-width: 920px) {
-          .hero-grid,
-          .hotel-card {
+        @media (max-width: 1100px) {
+          .search-panel {
+            grid-template-columns: 1fr 1fr;
+          }
+
+          .search-btn {
+            grid-column: span 2;
+          }
+
+          .featured-grid {
             grid-template-columns: 1fr;
           }
 
+          .hotel-card,
+          .hero-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        @media (max-width: 720px) {
           .search-panel {
             grid-template-columns: 1fr;
+          }
+
+          .search-btn {
+            grid-column: auto;
           }
 
           .section-head,
           .hotel-footer {
             align-items: start;
             flex-direction: column;
+          }
+
+          .hero {
+            padding-top: 56px;
           }
         }
       `}</style>

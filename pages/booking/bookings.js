@@ -25,11 +25,15 @@ export default function BookingsPage() {
   }, [isAuthenticated, router]);
 
   return (
-    <div className="container bookings-page">
-      <div className="page-card">
-        <div className="badge">Trips</div>
-        <h1>My bookings</h1>
-        <p>Track your reservations and booking status.</p>
+    <div className="bookings-shell">
+      <div className="container bookings-page">
+        <div className="page-head">
+          <div>
+            <div className="badge">Trips</div>
+            <h1>My bookings</h1>
+            <p>Track your reservations and booking status.</p>
+          </div>
+        </div>
 
         {loading ? <div className="loading">Loading...</div> : null}
         {!loading && bookings.length === 0 ? <div className="empty">No bookings yet.</div> : null}
@@ -37,30 +41,42 @@ export default function BookingsPage() {
         <div className="booking-list">
           {bookings.map((b) => (
             <div key={b.id} className="booking-card">
-              <div>
-                <div className="booking-title">Booking #{b.id}</div>
-                <div className="booking-meta">Status: {b.status}</div>
+              <div className="booking-main">
+                <div className="booking-top">
+                  <div className="booking-title">Booking #{b.id}</div>
+                  <span className={`status status-${b.status}`}>{b.status}</span>
+                </div>
+
                 <div className="booking-meta">
                   {new Date(b.startDate).toLocaleDateString()} → {new Date(b.endDate).toLocaleDateString()}
                 </div>
+                <div className="booking-submeta">
+                  Room ID: {b.roomId} • {b.room?.listing?.title || 'Listing'}
+                </div>
               </div>
-              <div className="booking-total">₹{Number(b.totalAmount || 0).toLocaleString()}</div>
+
+              <div className="booking-side">
+                <div className="booking-total">₹{Number(b.totalAmount || 0).toLocaleString()}</div>
+                <div className="booking-note">Total amount</div>
+              </div>
             </div>
           ))}
         </div>
       </div>
 
       <style jsx>{`
-        .bookings-page {
-          padding: 28px 0 64px;
+        .bookings-shell {
+          background: linear-gradient(180deg, #f5f7fb 0%, #edf4ff 100%);
+          min-height: 100vh;
+          padding-bottom: 64px;
         }
 
-        .page-card {
-          background: white;
-          border-radius: 28px;
-          box-shadow: var(--shadow);
-          border: 1px solid rgba(226,232,240,0.8);
-          padding: 26px;
+        .bookings-page {
+          padding: 28px 0 0;
+        }
+
+        .page-head {
+          margin-bottom: 18px;
         }
 
         .badge {
@@ -75,12 +91,14 @@ export default function BookingsPage() {
 
         h1 {
           margin: 0 0 8px;
-          font-size: 2.2rem;
+          font-size: 2.4rem;
+          letter-spacing: -0.04em;
         }
 
         p {
           color: var(--muted);
-          margin: 0 0 20px;
+          margin: 0;
+          line-height: 1.7;
         }
 
         .loading,
@@ -88,8 +106,10 @@ export default function BookingsPage() {
           margin-top: 14px;
           padding: 14px;
           border-radius: 14px;
-          background: #f8fafc;
+          background: white;
           color: var(--muted);
+          border: 1px solid rgba(226,232,240,0.85);
+          box-shadow: var(--shadow);
         }
 
         .booking-list {
@@ -99,34 +119,87 @@ export default function BookingsPage() {
         }
 
         .booking-card {
-          border: 1px solid var(--line);
-          border-radius: 20px;
-          padding: 18px;
+          border: 1px solid rgba(226,232,240,0.85);
+          border-radius: 24px;
+          padding: 20px;
           display: flex;
           justify-content: space-between;
           gap: 16px;
           align-items: center;
+          background: white;
+          box-shadow: var(--shadow);
+        }
+
+        .booking-top {
+          display: flex;
+          gap: 12px;
+          align-items: center;
+          flex-wrap: wrap;
         }
 
         .booking-title {
           font-weight: 900;
-          font-size: 1.1rem;
+          font-size: 1.15rem;
+          letter-spacing: -0.02em;
         }
 
-        .booking-meta {
+        .status {
+          padding: 7px 10px;
+          border-radius: 999px;
+          font-size: 0.8rem;
+          font-weight: 900;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+        }
+
+        .status-confirmed {
+          background: #dcfce7;
+          color: #166534;
+        }
+
+        .status-pending {
+          background: #fef3c7;
+          color: #92400e;
+        }
+
+        .status-cancelled {
+          background: #fee2e2;
+          color: #991b1b;
+        }
+
+        .booking-meta,
+        .booking-submeta {
           color: var(--muted);
-          margin-top: 4px;
+          margin-top: 6px;
         }
 
         .booking-total {
           font-weight: 900;
-          font-size: 1.4rem;
+          font-size: 1.6rem;
+          letter-spacing: -0.03em;
+          color: var(--primary);
+          text-align: right;
+        }
+
+        .booking-note {
+          color: var(--muted);
+          text-align: right;
+          margin-top: 4px;
         }
 
         @media (max-width: 720px) {
           .booking-card {
             flex-direction: column;
             align-items: start;
+          }
+
+          .booking-side {
+            width: 100%;
+          }
+
+          .booking-total,
+          .booking-note {
+            text-align: left;
           }
         }
       `}</style>

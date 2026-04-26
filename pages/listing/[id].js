@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
 import useSWR from 'swr';
 import Link from 'next/link';
@@ -10,118 +11,229 @@ export default function ListingPage() {
   const router = useRouter();
   const { id } = router.query;
   const { isAuthenticated } = useAuth();
+  const [activeImage, setActiveImage] = useState(0);
 
-  const { data } = useSWR(id ? '/api/listings' : null, fetcher);
+  const { data } = useSWR('/api/listings', fetcher);
   const listings = Array.isArray(data) ? data : [];
   const listing = listings.find(x => String(x.id) === String(id));
 
-  if (!listing) return <div className="container page-load">Loading...</div>;
+  const images = useMemo(() => {
+    if (!listing) return [];
+    if (Array.isArray(listing.images)) return listing.images;
+    if (typeof listing.images === 'string') {
+      try {
+        return JSON.parse(listing.images) || [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  }, [listing]);
 
-  const images = Array.isArray(listing.images)
-    ? listing.images
-    : typeof listing.images === 'string'
-      ? (() => {
-          try { return JSON.parse(listing.images); } catch { return []; }
-        })()
-      : [];
+  const rooms = Array.isArray(listing?.rooms) ? listing.rooms : [];
 
-  const rooms = Array.isArray(listing.rooms) ? listing.rooms : [];
+  if (!listing) {
+    return <div className="container page-load">Loading...</div>;
+  }
 
   return (
-    <div className="container listing-page">
-      <div className="gallery">
-        <div className="main-image">
-          {images[0] ? <img src={images[0]} alt={listing.title} /> : <div className="placeholder">TravelBridge</div>}
+    <div className="listing-shell">
+      <div className="container listing-page">
+        <div className="breadcrumb">
+          <Link href="/">Home</Link>
+          <span>/</span>
+          <span>{listing.city}</span>
+          <span>/</span>
+          <span>{listing.title}</span>
         </div>
-        <div className="side-grid">
-          {images.slice(1, 4).map((src, idx) => (
-            <div className="thumb" key={idx}>
-              <img src={src} alt="" />
+
+        <div className="listing-hero">
+          <div className="gallery">
+            <div className="main-image">
+              {images[activeImage] ? (
+                <img src={images[activeImage]} alt={listing.title} />
+              ) : (
+                <div className="placeholder">TravelBridge</div>
+              )}
             </div>
-          ))}
-        </div>
-      </div>
 
-      <div className="listing-header">
-        <div>
-          <div className="crumb">{listing.city}, {listing.country}</div>
-          <h1>{listing.title}</h1>
-          <p>{listing.description}</p>
-        </div>
-
-        <div className="header-card">
-          <div className="score">8.9</div>
-          <div>
-            <strong>Excellent</strong>
-            <div>TravelBridge rating</div>
+            <div className="thumb-row">
+              {images.slice(0, 4).map((src, idx) => (
+                <button
+                  key={idx}
+                  className={`thumb ${idx === activeImage ? 'active' : ''}`}
+                  onClick={() => setActiveImage(idx)}
+                  type="button"
+                >
+                  <img src={src} alt="" />
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-      </div>
 
-      <div className="content-grid">
-        <div className="left">
-          <h2>Available rooms</h2>
-
-          {rooms.map(room => (
-            <div className="room-card" key={room.id}>
-              <div>
-                <div className="room-title">{room.title}</div>
-                <div className="room-meta">{room.capacity} guests · {room.inventory} available</div>
-              </div>
-
-              <div className="room-right">
-                <div className="room-price">₹{Number(room.pricePerNight || 0).toLocaleString()}</div>
-                <div className="room-night">per night</div>
-                {isAuthenticated ? (
-                  <Link href={`/booking/checkout?roomId=${room.id}`} className="btn btn-primary">
-                    Book now
-                  </Link>
-                ) : (
-                  <Link href="/login" className="btn btn-primary">
-                    Login to book
-                  </Link>
-                )}
-              </div>
+          <aside className="sticky-card">
+            <div className="sticky-badge">Great value</div>
+            <h2>Book this stay</h2>
+            <div className="sticky-price">
+              ₹{Number(rooms[0]?.pricePerNight || 0).toLocaleString()}
             </div>
-          ))}
-        </div>
+            <div className="sticky-meta">per night • subject to availability</div>
 
-        <aside className="right">
-          <div className="info-card">
-            <h3>Why book this stay?</h3>
-            <ul>
-              <li>Instant booking confirmation flow</li>
-              <li>Secure JWT auth</li>
-              <li>Stripe checkout support</li>
-              <li>Prisma + PostgreSQL backend</li>
+            <ul className="sticky-benefits">
+              <li>Free cancellation options</li>
+              <li>Instant confirmation</li>
+              <li>Secure payment flow</li>
             </ul>
+
+            {isAuthenticated ? (
+              <Link href={`/booking/checkout?roomId=${rooms[0]?.id || ''}`} className="btn btn-primary full">
+                Reserve now
+              </Link>
+            ) : (
+              <Link href="/login" className="btn btn-primary full">
+                Login to book
+              </Link>
+            )}
+          </aside>
+        </div>
+
+        <div className="listing-header">
+          <div>
+            <div className="crumb-text">{listing.city}, {listing.country}</div>
+            <h1>{listing.title}</h1>
+            <p>{listing.description}</p>
+
+            <div className="feature-row">
+              <span>Free Wi-Fi</span>
+              <span>Breakfast available</span>
+              <span>Pay at property</span>
+              <span>Pool access</span>
+            </div>
           </div>
-        </aside>
+
+          <div className="score-card">
+            <div className="score">8.9</div>
+            <div>
+              <strong>Excellent</strong>
+              <div>Based on guest reviews</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="content-grid">
+          <div className="left">
+            <div className="section-head">
+              <h2>Available rooms</h2>
+              <p>Choose a room that suits your trip.</p>
+            </div>
+
+            {rooms.map(room => (
+              <div className="room-card" key={room.id}>
+                <div className="room-main">
+                  <div className="room-title">{room.title}</div>
+                  <div className="room-meta">
+                    {room.capacity} guests • {room.inventory} available • Instant confirmation
+                  </div>
+                  <div className="room-tags">
+                    <span>Free cancellation</span>
+                    <span>Breakfast option</span>
+                    <span>Pay later</span>
+                  </div>
+                </div>
+
+                <div className="room-right">
+                  <div className="room-price">₹{Number(room.pricePerNight || 0).toLocaleString()}</div>
+                  <div className="room-night">per night</div>
+                  {isAuthenticated ? (
+                    <Link href={`/booking/checkout?roomId=${room.id}`} className="btn btn-primary">
+                      Select room
+                    </Link>
+                  ) : (
+                    <Link href="/login" className="btn btn-primary">
+                      Login to book
+                    </Link>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <aside className="right">
+            <div className="info-card">
+              <h3>Why book with TravelBridge?</h3>
+              <ul>
+                <li>Instant booking confirmation</li>
+                <li>Simple secure checkout</li>
+                <li>Transparent room pricing</li>
+                <li>Reliable reservation flow</li>
+              </ul>
+            </div>
+
+            <div className="info-card">
+              <h3>Property highlights</h3>
+              <ul>
+                <li>Best location in city center</li>
+                <li>Great for couples and families</li>
+                <li>Popular with repeat guests</li>
+              </ul>
+            </div>
+          </aside>
+        </div>
       </div>
 
       <style jsx>{`
+        .listing-shell {
+          background: linear-gradient(180deg, #f5f7fb 0%, #edf4ff 100%);
+          min-height: 100vh;
+          padding-bottom: 64px;
+        }
+
         .listing-page {
-          padding: 28px 0 64px;
+          padding: 24px 0 0;
+        }
+
+        .breadcrumb {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          color: var(--muted);
+          font-size: 0.95rem;
+          margin-bottom: 18px;
+        }
+
+        .breadcrumb a {
+          color: var(--primary);
+          font-weight: 700;
+        }
+
+        .listing-hero {
+          display: grid;
+          grid-template-columns: minmax(0, 1.7fr) 360px;
+          gap: 18px;
+          align-items: start;
+          margin-bottom: 24px;
         }
 
         .gallery {
-          display: grid;
-          grid-template-columns: 2fr 1fr;
-          gap: 16px;
+          background: white;
+          padding: 16px;
+          border-radius: 28px;
+          box-shadow: var(--shadow);
+          border: 1px solid rgba(226,232,240,0.85);
         }
 
         .main-image {
-          border-radius: 28px;
+          border-radius: 22px;
           overflow: hidden;
           min-height: 420px;
-          background: white;
-          box-shadow: var(--shadow);
+          background: #e2e8f0;
         }
 
         .main-image img {
           width: 100%;
           height: 100%;
           object-fit: cover;
+          display: block;
         }
 
         .placeholder {
@@ -134,24 +246,83 @@ export default function ListingPage() {
           color: #1d4ed8;
         }
 
-        .side-grid {
+        .thumb-row {
           display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 16px;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 10px;
+          margin-top: 12px;
         }
 
         .thumb {
-          min-height: 202px;
-          border-radius: 24px;
+          border: 0;
+          padding: 0;
+          border-radius: 16px;
           overflow: hidden;
-          background: white;
-          box-shadow: var(--shadow);
+          min-height: 88px;
+          background: #e2e8f0;
+          cursor: pointer;
+          opacity: 0.88;
+          transition: 0.2s ease;
+        }
+
+        .thumb.active {
+          outline: 3px solid var(--primary);
+          opacity: 1;
         }
 
         .thumb img {
           width: 100%;
           height: 100%;
           object-fit: cover;
+          display: block;
+        }
+
+        .sticky-card {
+          position: sticky;
+          top: 92px;
+          background: white;
+          border-radius: 28px;
+          padding: 22px;
+          box-shadow: var(--shadow);
+          border: 1px solid rgba(226,232,240,0.85);
+        }
+
+        .sticky-badge {
+          display: inline-flex;
+          background: #eff6ff;
+          color: var(--primary);
+          padding: 8px 12px;
+          border-radius: 999px;
+          font-weight: 800;
+          margin-bottom: 12px;
+        }
+
+        .sticky-card h2 {
+          margin: 0 0 10px;
+          font-size: 1.6rem;
+        }
+
+        .sticky-price {
+          font-size: 2.2rem;
+          font-weight: 900;
+          letter-spacing: -0.04em;
+        }
+
+        .sticky-meta {
+          color: var(--muted);
+          margin-top: 4px;
+        }
+
+        .sticky-benefits {
+          margin: 18px 0 0;
+          padding-left: 18px;
+          color: var(--text);
+          line-height: 1.9;
+        }
+
+        .full {
+          width: 100%;
+          margin-top: 18px;
         }
 
         .listing-header {
@@ -159,31 +330,52 @@ export default function ListingPage() {
           justify-content: space-between;
           gap: 20px;
           align-items: start;
-          margin: 28px 0;
+          margin: 0 0 22px;
           padding: 24px;
           background: white;
           border-radius: 28px;
           box-shadow: var(--shadow);
+          border: 1px solid rgba(226,232,240,0.85);
         }
 
-        .crumb {
+        .crumb-text {
           color: var(--primary);
-          font-weight: 800;
+          font-weight: 900;
           margin-bottom: 8px;
         }
 
         h1 {
           margin: 0 0 10px;
-          font-size: 2.6rem;
+          font-size: 2.7rem;
+          letter-spacing: -0.04em;
         }
 
-        p {
+        .listing-header p {
           color: var(--muted);
           line-height: 1.8;
           max-width: 72ch;
+          margin: 0;
         }
 
-        .header-card {
+        .feature-row {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+          margin-top: 16px;
+        }
+
+        .feature-row span,
+        .room-tags span {
+          padding: 8px 12px;
+          border-radius: 999px;
+          background: #f8fafc;
+          border: 1px solid var(--line);
+          font-weight: 700;
+          color: #0f172a;
+          font-size: 0.9rem;
+        }
+
+        .score-card {
           min-width: 220px;
           background: #eff6ff;
           border-radius: 20px;
@@ -202,16 +394,28 @@ export default function ListingPage() {
           display: grid;
           place-items: center;
           font-weight: 900;
+          flex: 0 0 auto;
         }
 
         .content-grid {
           display: grid;
-          grid-template-columns: 2fr 1fr;
+          grid-template-columns: minmax(0, 1fr) 320px;
           gap: 18px;
+          align-items: start;
         }
 
-        .left h2 {
-          margin: 0 0 16px;
+        .section-head {
+          margin-bottom: 16px;
+        }
+
+        .section-head h2 {
+          margin: 0;
+          font-size: 2rem;
+        }
+
+        .section-head p {
+          margin: 8px 0 0;
+          color: var(--muted);
         }
 
         .room-card,
@@ -219,7 +423,7 @@ export default function ListingPage() {
           background: white;
           border-radius: 24px;
           box-shadow: var(--shadow);
-          border: 1px solid rgba(226,232,240,0.8);
+          border: 1px solid rgba(226,232,240,0.85);
         }
 
         .room-card {
@@ -234,11 +438,19 @@ export default function ListingPage() {
         .room-title {
           font-size: 1.2rem;
           font-weight: 900;
+          letter-spacing: -0.02em;
         }
 
         .room-meta {
           color: var(--muted);
           margin-top: 6px;
+        }
+
+        .room-tags {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          margin-top: 14px;
         }
 
         .room-right {
@@ -247,8 +459,9 @@ export default function ListingPage() {
         }
 
         .room-price {
-          font-size: 1.8rem;
+          font-size: 1.9rem;
           font-weight: 900;
+          letter-spacing: -0.03em;
         }
 
         .room-night {
@@ -258,6 +471,7 @@ export default function ListingPage() {
 
         .info-card {
           padding: 22px;
+          margin-bottom: 16px;
         }
 
         .info-card h3 {
@@ -271,21 +485,19 @@ export default function ListingPage() {
           line-height: 2;
         }
 
-        @media (max-width: 920px) {
-          .gallery,
+        @media (max-width: 1100px) {
+          .listing-hero,
           .content-grid {
             grid-template-columns: 1fr;
           }
 
-          .listing-header {
-            grid-template-columns: 1fr;
-            display: grid;
+          .sticky-card {
+            position: static;
           }
+        }
 
-          .side-grid {
-            grid-template-columns: 1fr 1fr;
-          }
-
+        @media (max-width: 720px) {
+          .listing-header,
           .room-card {
             flex-direction: column;
             align-items: start;
@@ -294,6 +506,10 @@ export default function ListingPage() {
           .room-right {
             width: 100%;
             text-align: left;
+          }
+
+          .thumb-row {
+            grid-template-columns: repeat(2, 1fr);
           }
         }
       `}</style>

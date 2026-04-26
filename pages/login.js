@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../context/AuthContext';
+import Link from 'next/link';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -32,42 +33,56 @@ export default function LoginPage() {
 
   return (
     <div className="auth-shell">
-      <form className="auth-card" onSubmit={handleSubmit}>
-        <div className="auth-badge">Welcome back</div>
-        <h1>Login</h1>
-        <p>Access bookings and continue your trip planning.</p>
+      <div className="auth-grid">
+        <section className="auth-copy">
+          <div className="eyebrow">Welcome back</div>
+          <h1>Sign in to continue your booking journey</h1>
+          <p>
+            Access your saved bookings, complete reservations faster, and keep track of your trips in one place.
+          </p>
+        </section>
 
-        <label>Email</label>
-        <input value={email} onChange={e => setEmail(e.target.value)} type="email" />
+        <form className="auth-card" onSubmit={handleSubmit}>
+          <h2>Login</h2>
 
-        <label>Password</label>
-        <input value={password} onChange={e => setPassword(e.target.value)} type="password" />
+          <label>Email</label>
+          <input value={email} onChange={e => setEmail(e.target.value)} type="email" placeholder="you@example.com" />
 
-        {error ? <div className="error">{error}</div> : null}
+          <label>Password</label>
+          <input value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="••••••••" />
 
-        <button className="btn btn-primary full">Login</button>
-        <div className="auth-link">No account? <a href="/signup">Sign up</a></div>
-      </form>
+          {error ? <div className="error">{error}</div> : null}
+
+          <button className="btn btn-primary full">Login</button>
+
+          <div className="auth-link">
+            No account? <Link href="/signup">Sign up</Link>
+          </div>
+        </form>
+      </div>
 
       <style jsx>{`
         .auth-shell {
           min-height: calc(100vh - 76px);
           display: grid;
           place-items: center;
-          padding: 28px;
-          background: linear-gradient(135deg, #eff6ff, #f8fafc);
+          padding: 32px 16px;
+          background: linear-gradient(180deg, #f5f7fb 0%, #edf4ff 100%);
         }
 
-        .auth-card {
-          width: min(460px, 100%);
-          background: white;
-          border-radius: 28px;
-          padding: 30px;
-          box-shadow: var(--shadow);
-          border: 1px solid rgba(226,232,240,0.8);
+        .auth-grid {
+          width: min(1120px, 100%);
+          display: grid;
+          grid-template-columns: 1.1fr 0.9fr;
+          gap: 24px;
+          align-items: center;
         }
 
-        .auth-badge {
+        .auth-copy {
+          padding: 20px 0;
+        }
+
+        .eyebrow {
           display: inline-flex;
           background: #eff6ff;
           color: var(--primary);
@@ -78,13 +93,30 @@ export default function LoginPage() {
         }
 
         h1 {
-          margin: 0 0 8px;
-          font-size: 2.2rem;
+          margin: 0 0 12px;
+          font-size: clamp(2.4rem, 4vw, 4.3rem);
+          letter-spacing: -0.05em;
+          line-height: 0.98;
+          max-width: 11ch;
         }
 
         p {
-          margin: 0 0 20px;
           color: var(--muted);
+          line-height: 1.8;
+          max-width: 54ch;
+        }
+
+        .auth-card {
+          background: white;
+          border-radius: 30px;
+          padding: 30px;
+          box-shadow: var(--shadow);
+          border: 1px solid rgba(226,232,240,0.85);
+        }
+
+        .auth-card h2 {
+          margin: 0 0 18px;
+          font-size: 1.8rem;
         }
 
         label {
@@ -100,6 +132,7 @@ export default function LoginPage() {
           border: 1px solid var(--line);
           outline: none;
           font-size: 1rem;
+          background: white;
         }
 
         .error {
@@ -119,8 +152,19 @@ export default function LoginPage() {
 
         .auth-link {
           margin-top: 16px;
-          color: var(--muted);
           text-align: center;
+          color: var(--muted);
+        }
+
+        .auth-link a {
+          color: var(--primary);
+          font-weight: 800;
+        }
+
+        @media (max-width: 920px) {
+          .auth-grid {
+            grid-template-columns: 1fr;
+          }
         }
       `}</style>
     </div>
