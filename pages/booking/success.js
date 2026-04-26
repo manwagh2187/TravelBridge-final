@@ -1,7 +1,7 @@
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 
-export default function Success() {
+export default function SuccessPage() {
   const router = useRouter();
   const { session_id } = router.query;
   const [message, setMessage] = useState('Checking payment...');
@@ -12,10 +12,10 @@ export default function Success() {
   }, [session_id]);
 
   return (
-    <div style={{ maxWidth: 720, margin: '0 auto', padding: 20 }}>
-      <h2>Payment success</h2>
+    <div className="container" style={{ padding: '40px 0' }}>
+      <h1>Payment success</h1>
       <p>{message}</p>
-      <p><a href="/">Return home</a></p>
+      <a href="/" className="btn btn-primary">Back to home</a>
     </div>
   );
 }

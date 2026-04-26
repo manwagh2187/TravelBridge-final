@@ -1,13 +1,12 @@
 import prisma from '../../../lib/prisma';
 import jwt from 'jsonwebtoken';
 
-function getUserIdFromAuth(req) {
+function getAuth(req) {
   const auth = req.headers.authorization;
   if (!auth) return null;
   const token = auth.replace('Bearer ', '');
   try {
-    const data = jwt.verify(token, process.env.JWT_SECRET || 'dev');
-    return data;
+    return jwt.verify(token, process.env.JWT_SECRET || 'dev');
   } catch {
     return null;
   }
@@ -15,9 +14,9 @@ function getUserIdFromAuth(req) {
 
 export default async function handler(req, res) {
   if (req.method === 'POST') {
-    const auth = getUserIdFromAuth(req);
+    const auth = getAuth(req);
     if (!auth) return res.status(401).json({ error: 'Unauthorized' });
-    const userId = auth.userId;
+
     const { roomId, startDate, endDate } = req.body;
     const s = new Date(startDate);
     const e = new Date(endDate);
@@ -42,34 +41,36 @@ export default async function handler(req, res) {
           throw { code: 409, message: 'No availability for selected dates' };
         }
 
-        const nights = Math.max(1, Math.round((e - s) / (1000*60*60*24)));
+        const nights = Math.max(1, Math.round((e - s) / (1000 * 60 * 60 * 24)));
         const total = nights * room.pricePerNight;
 
-        const b = await tx.booking.create({
+        return tx.booking.create({
           data: {
-            userId,
+            userId: auth.userId,
             roomId,
             startDate: s,
             endDate: e,
             totalAmount: total,
-            status: 'pending'
+            status: 'pending',
           }
         });
-        return b;
       });
 
       res.json(booking);
     } catch (err) {
-      if (err && err.code) return res.status(err.code).json({ error: err.message });
+      if (err?.code) return res.status(err.code).json({ error: err.message });
       console.error(err);
       res.status(500).json({ error: 'Server error' });
     }
-
   } else if (req.method === 'GET') {
-    const auth = getUserIdFromAuth(req);
+    const auth = getAuth(req);
     if (!auth) return res.status(401).json({ error: 'Unauthorized' });
-    const userId = auth.userId;
-    const bookings = await prisma.booking.findMany({ where: { userId }, include: { room: { include: { listing: true }}}});
+
+    const bookings = await prisma.booking.findMany({
+      where: { userId: auth.userId },
+      include: { room: { include: { listing: true } } }
+    });
+
     res.json(bookings);
   } else {
     res.status(405).end();
