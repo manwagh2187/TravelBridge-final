@@ -18,17 +18,42 @@ export default async function handler(req, res) {
     if (!auth) return res.status(401).json({ error: 'Unauthorized' });
 
     const { roomId, startDate, endDate } = req.body;
+
+    if (!roomId || !startDate || !endDate) {
+      return res.status(400).json({ error: 'Missing booking fields' });
+    }
+
+    const parsedRoomId = Number(roomId);
+    if (Number.isNaN(parsedRoomId)) {
+      return res.status(400).json({ error: 'Invalid roomId' });
+    }
+
     const s = new Date(startDate);
     const e = new Date(endDate);
 
+    if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) {
+      return res.status(400).json({ error: 'Invalid dates' });
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (s < today) {
+      return res.status(400).json({ error: 'Check-in cannot be in the past' });
+    }
+
+    if (e <= s) {
+      return res.status(400).json({ error: 'Check-out must be after check-in' });
+    }
+
     try {
       const booking = await prisma.$transaction(async (tx) => {
-        const room = await tx.room.findUnique({ where: { id: roomId } });
+        const room = await tx.room.findUnique({ where: { id: parsedRoomId } });
         if (!room) throw { code: 404, message: 'Room not found' };
 
         const overlapping = await tx.booking.count({
           where: {
-            roomId: roomId,
+            roomId: parsedRoomId,
             NOT: [
               { endDate: { lte: s } },
               { startDate: { gte: e } }
@@ -47,7 +72,7 @@ export default async function handler(req, res) {
         return tx.booking.create({
           data: {
             userId: auth.userId,
-            roomId,
+            roomId: parsedRoomId,
             startDate: s,
             endDate: e,
             totalAmount: total,

@@ -9,7 +9,7 @@ const fetcher = (url) => apiFetch(url).then(r => r.json());
 
 export default function ListingPage() {
   const router = useRouter();
-  const { id } = router.query;
+  const { id, checkIn, checkOut, guests, destination } = router.query;
   const { isAuthenticated } = useAuth();
   const [activeImage, setActiveImage] = useState(0);
 
@@ -46,6 +46,14 @@ export default function ListingPage() {
           <span>/</span>
           <span>{listing.title}</span>
         </div>
+
+        {(checkIn || checkOut || guests || destination) ? (
+          <div className="search-context">
+            {destination ? <span>{destination}</span> : null}
+            {guests ? <span>{guests} guests</span> : null}
+            {checkIn && checkOut ? <span>{checkIn} → {checkOut}</span> : null}
+          </div>
+        ) : null}
 
         <div className="listing-hero">
           <div className="gallery">
@@ -204,6 +212,24 @@ export default function ListingPage() {
         .breadcrumb a {
           color: var(--primary);
           font-weight: 700;
+        }
+
+        .search-context {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+          margin-bottom: 18px;
+        }
+
+        .search-context span {
+          display: inline-flex;
+          background: #eff6ff;
+          color: var(--primary);
+          border: 1px solid rgba(37, 99, 235, 0.12);
+          padding: 8px 12px;
+          border-radius: 999px;
+          font-weight: 800;
+          font-size: 0.9rem;
         }
 
         .listing-hero {

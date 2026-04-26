@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import useSWR from 'swr';
 import { apiFetch } from '../lib/api';
@@ -27,12 +27,25 @@ const FEATURED_DEALS = [
   },
 ];
 
+const today = new Date().toISOString().split('T')[0];
+
 export default function Home() {
+  const resultsRef = useRef(null);
+  const mapRef = useRef(null);
+
   const [destination, setDestination] = useState('Bangkok');
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
   const [guests, setGuests] = useState(2);
   const [selectedSort, setSelectedSort] = useState('recommended');
+  const [searchError, setSearchError] = useState('');
+  const [selectedListingId, setSelectedListingId] = useState(null);
+
+  const isDateRangeInvalid =
+    checkIn && checkOut ? new Date(checkOut) <= new Date(checkIn) : false;
+
+  const isPartialDateSelection =
+    Boolean(checkIn || checkOut) && !(checkIn && checkOut);
 
   const { data } = useSWR(
     `/api/listings?city=${encodeURIComponent(destination)}`,
@@ -50,6 +63,50 @@ export default function Home() {
     }
     return arr;
   }, [listings, selectedSort]);
+
+  function handleSearch() {
+    setSearchError('');
+
+    if (isPartialDateSelection) {
+      setSearchError('Please select both check-in and check-out dates.');
+      return;
+    }
+
+    if (checkIn && checkOut) {
+      const start = new Date(checkIn);
+      const end = new Date(checkOut);
+
+      if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+        setSearchError('Please enter valid dates.');
+        return;
+      }
+
+      const normalizedStart = new Date(start);
+      normalizedStart.setHours(0, 0, 0, 0);
+
+      const normalizedEnd = new Date(end);
+      normalizedEnd.setHours(0, 0, 0, 0);
+
+      const normalizedToday = new Date();
+      normalizedToday.setHours(0, 0, 0, 0);
+
+      if (normalizedStart < normalizedToday) {
+        setSearchError('Check-in cannot be in the past.');
+        return;
+      }
+
+      if (normalizedEnd <= normalizedStart) {
+        setSearchError('Check-out must be after check-in.');
+        return;
+      }
+    }
+
+    resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function handleShowMap() {
+    mapRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 
   return (
     <div className="home-page">
@@ -77,7 +134,15 @@ export default function Home() {
                 <input
                   type="date"
                   value={checkIn}
-                  onChange={(e) => setCheckIn(e.target.value)}
+                  min={today}
+                  onChange={(e) => {
+                    const nextCheckIn = e.target.value;
+                    setCheckIn(nextCheckIn);
+                    if (checkOut && nextCheckIn && checkOut <= nextCheckIn) {
+                      setCheckOut('');
+                    }
+                    if (searchError) setSearchError('');
+                  }}
                 />
               </div>
 
@@ -86,7 +151,12 @@ export default function Home() {
                 <input
                   type="date"
                   value={checkOut}
-                  onChange={(e) => setCheckOut(e.target.value)}
+                  min={checkIn || today}
+                  onChange={(e) => {
+                    setCheckOut(e.target.value);
+                    if (searchError) setSearchError('');
+                  }}
+                  disabled={!checkIn}
                 />
               </div>
 
@@ -110,10 +180,17 @@ export default function Home() {
                 </select>
               </div>
 
-              <button className="btn btn-primary search-btn">
+              <button
+                className="btn btn-primary search-btn"
+                onClick={handleSearch}
+                type="button"
+                disabled={isDateRangeInvalid}
+              >
                 Search
               </button>
             </div>
+
+            {searchError ? <div className="search-error">{searchError}</div> : null}
 
             <div className="chips">
               {DESTINATIONS.map((d) => (
@@ -121,6 +198,7 @@ export default function Home() {
                   key={d}
                   className={`chip ${d === destination ? 'active' : ''}`}
                   onClick={() => setDestination(d)}
+                  type="button"
                 >
                   {d}
                 </button>
@@ -165,20 +243,26 @@ export default function Home() {
               <div className="featured-badge">Limited time</div>
               <h3>{deal.title}</h3>
               <p>{deal.subtitle}</p>
-              <button className="btn btn-outline">{deal.cta}</button>
+              <button className="btn btn-outline" type="button">{deal.cta}</button>
             </div>
           ))}
         </div>
       </section>
 
-      <section className="container section">
+      <section className="container section" ref={resultsRef}>
         <div className="section-head">
           <div>
             <div className="section-kicker">Explore</div>
             <h2>Stays in {destination}</h2>
             <p>Modern hotel cards, room details, and booking flow.</p>
           </div>
-          <div className="result-count">{sortedListings.length} properties</div>
+
+          <div className="results-actions">
+            <div className="result-count">{sortedListings.length} properties</div>
+            <button className="btn btn-outline map-btn" type="button" onClick={handleShowMap}>
+              Show map
+            </button>
+          </div>
         </div>
 
         <div className="hotel-grid">
@@ -193,8 +277,17 @@ export default function Home() {
                   })()
                 : null;
 
+            const isSelected = selectedListingId === listing.id;
+
             return (
-              <article key={listing.id} className="hotel-card">
+              <article
+                key={listing.id}
+                className={`hotel-card ${isSelected ? 'selected' : ''}`}
+                onClick={() => {
+                  setSelectedListingId(listing.id);
+                  mapRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
+              >
                 <div className="hotel-image">
                   {cover ? <img src={cover} alt={listing.title} /> : <div className="placeholder">TravelBridge</div>}
                   <div className="deal-badge">Deal</div>
@@ -229,7 +322,18 @@ export default function Home() {
                       <div className="per-night">per night</div>
                     </div>
 
-                    <Link href={`/listing/${listing.id}`} className="btn btn-primary">
+                    <Link
+                      href={{
+                        pathname: `/listing/${listing.id}`,
+                        query: {
+                          checkIn,
+                          checkOut,
+                          guests,
+                          destination,
+                        },
+                      }}
+                      className="btn btn-primary"
+                    >
                       View deal
                     </Link>
                   </div>
@@ -246,9 +350,54 @@ export default function Home() {
         ) : null}
       </section>
 
+      <section className="container map-section" ref={mapRef}>
+        <div className="section-head">
+          <div>
+            <div className="section-kicker">Map view</div>
+            <h2>{destination} map</h2>
+            <p>Click a property above to jump here.</p>
+          </div>
+        </div>
+
+        <div className="map-layout">
+          <div className="map-panel">
+            <div className="map-placeholder">
+              <div className="map-city">{destination}</div>
+              <div className="map-pin pin-1">Hotel A</div>
+              <div className="map-pin pin-2">Hotel B</div>
+              <div className="map-pin pin-3">Hotel C</div>
+            </div>
+          </div>
+
+          <aside className="map-list">
+            <h3>Nearby stays</h3>
+            {sortedListings.slice(0, 3).map((listing) => (
+              <button
+                key={listing.id}
+                type="button"
+                className="map-item"
+                onClick={() => setSelectedListingId(listing.id)}
+              >
+                <strong>{listing.title}</strong>
+                <span>{listing.city}, {listing.country}</span>
+              </button>
+            ))}
+          </aside>
+        </div>
+      </section>
+
       <style jsx>{`
         .home-page {
           background: linear-gradient(180deg, #f5f7fb 0%, #edf4ff 100%);
+        }
+
+        .search-error {
+          margin-top: 14px;
+          background: #fef2f2;
+          color: #b91c1c;
+          padding: 12px 14px;
+          border-radius: 14px;
+          font-weight: 700;
         }
 
         .hero {
@@ -420,7 +569,8 @@ export default function Home() {
         }
 
         .deals-section,
-        .section {
+        .section,
+        .map-section {
           padding: 34px 0 72px;
         }
 
@@ -430,6 +580,13 @@ export default function Home() {
           justify-content: space-between;
           gap: 20px;
           margin-bottom: 18px;
+        }
+
+        .results-actions {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          flex-wrap: wrap;
         }
 
         .section-kicker {
@@ -495,6 +652,11 @@ export default function Home() {
           box-shadow: var(--shadow);
           display: grid;
           grid-template-columns: 360px 1fr;
+          cursor: pointer;
+        }
+
+        .hotel-card.selected {
+          outline: 3px solid rgba(37, 99, 235, 0.35);
         }
 
         .hotel-image {
@@ -638,6 +800,80 @@ export default function Home() {
           color: var(--muted);
         }
 
+        .map-layout {
+          display: grid;
+          grid-template-columns: 1.5fr 0.8fr;
+          gap: 16px;
+          align-items: start;
+        }
+
+        .map-panel,
+        .map-list {
+          background: white;
+          border-radius: 28px;
+          box-shadow: var(--shadow);
+          border: 1px solid rgba(226,232,240,0.85);
+          overflow: hidden;
+        }
+
+        .map-placeholder {
+          position: relative;
+          min-height: 420px;
+          background:
+            radial-gradient(circle at center, rgba(59, 130, 246, 0.2), transparent 35%),
+            linear-gradient(135deg, #dbeafe, #f8fafc);
+          display: grid;
+          place-items: center;
+        }
+
+        .map-city {
+          font-size: 2.5rem;
+          font-weight: 900;
+          color: #1d4ed8;
+        }
+
+        .map-pin {
+          position: absolute;
+          padding: 8px 12px;
+          background: white;
+          border-radius: 999px;
+          box-shadow: var(--shadow);
+          font-weight: 800;
+        }
+
+        .pin-1 { top: 24%; left: 22%; }
+        .pin-2 { top: 44%; left: 58%; }
+        .pin-3 { top: 68%; left: 35%; }
+
+        .map-list {
+          padding: 20px;
+        }
+
+        .map-list h3 {
+          margin-top: 0;
+        }
+
+        .map-item {
+          width: 100%;
+          text-align: left;
+          background: #f8fafc;
+          border: 1px solid var(--line);
+          border-radius: 18px;
+          padding: 14px;
+          margin-bottom: 12px;
+          cursor: pointer;
+        }
+
+        .map-item strong {
+          display: block;
+          margin-bottom: 6px;
+        }
+
+        .map-item span {
+          color: var(--muted);
+          font-size: 0.95rem;
+        }
+
         @media (max-width: 1100px) {
           .search-panel {
             grid-template-columns: 1fr 1fr;
@@ -652,7 +888,8 @@ export default function Home() {
           }
 
           .hotel-card,
-          .hero-grid {
+          .hero-grid,
+          .map-layout {
             grid-template-columns: 1fr;
           }
         }
