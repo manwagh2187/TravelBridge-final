@@ -10,9 +10,21 @@ const DESTINATIONS = [
 ];
 
 const FEATURED_DEALS = [
-  { title: 'Weekend escapes', subtitle: 'Save more on short trips', cta: 'Explore deals' },
-  { title: 'Luxury stays', subtitle: 'Premium rooms and suites', cta: 'View luxury' },
-  { title: 'Family travel', subtitle: 'Spacious rooms for everyone', cta: 'See family options' },
+  {
+    title: 'Weekend escapes',
+    subtitle: 'Save more on short trips',
+    cta: 'Explore deals',
+  },
+  {
+    title: 'Luxury stays',
+    subtitle: 'Premium rooms and suites',
+    cta: 'View luxury',
+  },
+  {
+    title: 'Family travel',
+    subtitle: 'Spacious rooms for everyone',
+    cta: 'See family options',
+  },
 ];
 
 const today = new Date().toISOString().split('T')[0];
@@ -112,9 +124,18 @@ export default function Home() {
             </p>
 
             <div className="trust-strip">
-              <div><strong>4.8/5</strong><span>Guest rating</span></div>
-              <div><strong>500+</strong><span>Verified stays</span></div>
-              <div><strong>24/7</strong><span>Support</span></div>
+              <div>
+                <strong>4.8/5</strong>
+                <span>Guest rating</span>
+              </div>
+              <div>
+                <strong>500+</strong>
+                <span>Verified stays</span>
+              </div>
+              <div>
+                <strong>24/7</strong>
+                <span>Support</span>
+              </div>
             </div>
 
             <div className="search-panel">
@@ -210,9 +231,18 @@ export default function Home() {
             <p>Trending destinations, clean rooms, and instant checkout flow.</p>
 
             <div className="hero-stats">
-              <div><strong>4.8/5</strong><span>Guest rating</span></div>
-              <div><strong>24/7</strong><span>Support</span></div>
-              <div><strong>500+</strong><span>Stays</span></div>
+              <div>
+                <strong>4.8/5</strong>
+                <span>Guest rating</span>
+              </div>
+              <div>
+                <strong>24/7</strong>
+                <span>Support</span>
+              </div>
+              <div>
+                <strong>500+</strong>
+                <span>Stays</span>
+              </div>
             </div>
           </div>
         </div>
