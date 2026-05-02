@@ -11,6 +11,11 @@
   --radius: 20px;
 }
 
+.map-canvas .leaflet-container {
+  height: 100%;
+  width: 100%;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -35,6 +40,11 @@ img {
 
 button, input, select {
   font: inherit;
+}
+
+.map-canvas .leaflet-container {
+  height: 100%;
+  width: 100%;
 }
 
 main {

@@ -1,7 +1,27 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import useSWR from 'swr';
 import { apiFetch } from '../lib/api';
+
+import 'leaflet/dist/leaflet.css';
+
+const MapContainer = dynamic(
+  () => import('react-leaflet').then((mod) => mod.MapContainer),
+  { ssr: false }
+);
+const TileLayer = dynamic(
+  () => import('react-leaflet').then((mod) => mod.TileLayer),
+  { ssr: false }
+);
+const Marker = dynamic(
+  () => import('react-leaflet').then((mod) => mod.Marker),
+  { ssr: false }
+);
+const Popup = dynamic(
+  () => import('react-leaflet').then((mod) => mod.Popup),
+  { ssr: false }
+);
 
 const fetcher = (url) => apiFetch(url).then((r) => r.json());
 
@@ -39,6 +59,22 @@ export default function Home() {
     }
     return arr;
   }, [listings, selectedSort]);
+
+  const mapCenter = useMemo(() => {
+    const firstWithCoords = sortedListings.find(
+      (h) => typeof h.latitude === 'number' && typeof h.longitude === 'number'
+    );
+    if (firstWithCoords) return [firstWithCoords.latitude, firstWithCoords.longitude];
+    return destination === 'Mumbai' ? [19.076, 72.8777] : [20.5937, 78.9629];
+  }, [sortedListings, destination]);
+
+  const activeListing = sortedListings.find((l) => l.id === selectedListingId) || null;
+
+  useEffect(() => {
+    if (selectedListingId && !sortedListings.some((l) => l.id === selectedListingId)) {
+      setSelectedListingId(null);
+    }
+  }, [selectedListingId, sortedListings]);
 
   function handleSearch() {
     setSearchError('');
@@ -302,9 +338,38 @@ export default function Home() {
           <div className="map-panel">
             <div className="map-fallback">
               <div className="map-fallback-icon">📍</div>
-              <div className="map-fallback-title">Map unavailable</div>
-              <p>No live map data is available right now. Please use the nearby stays list below.</p>
-              <div className="map-fallback-note">{destination}</div>
+              <div className="map-fallback-title">Interactive map</div>
+
+              <div className="map-canvas">
+                <MapContainer center={mapCenter} zoom={12} scrollWheelZoom={false} style={{ height: '100%', width: '100%' }}>
+                  <TileLayer
+                    attribution='&copy; OpenStreetMap contributors'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  />
+                  {sortedListings
+                    .filter((h) => typeof h.latitude === 'number' && typeof h.longitude === 'number')
+                    .map((h) => (
+                      <Marker key={h.id} position={[h.latitude, h.longitude]}>
+                        <Popup>
+                          <strong>{h.title}</strong>
+                          <div>{h.city}, {h.country}</div>
+                        </Popup>
+                      </Marker>
+                    ))}
+                </MapContainer>
+              </div>
+
+              <p className="map-note">
+                Hotels with location data are shown on the map. Click a hotel card to highlight it.
+              </p>
+
+              {activeListing ? (
+                <div className="map-fallback-note active-note">
+                  Selected: {activeListing.title}
+                </div>
+              ) : (
+                <div className="map-fallback-note">{destination}</div>
+              )}
             </div>
           </div>
 
@@ -321,6 +386,10 @@ export default function Home() {
                 <span>{listing.city}, {listing.country}</span>
               </button>
             ))}
+
+            {!sortedListings.length ? (
+              <div className="map-empty">No nearby stays available for this destination.</div>
+            ) : null}
           </aside>
         </div>
       </section>
@@ -696,12 +765,7 @@ export default function Home() {
         }
 
         .map-fallback {
-          min-height: 420px;
-          display: grid;
-          place-items: center;
-          text-align: center;
-          padding: 28px;
-          background: linear-gradient(135deg, #fff7ed, #faf5ee);
+          padding: 18px 18px 24px;
         }
 
         .map-fallback-icon {
@@ -712,13 +776,20 @@ export default function Home() {
         .map-fallback-title {
           font-size: 1.4rem;
           font-weight: 900;
-          margin-bottom: 8px;
+          margin-bottom: 12px;
           color: #92400e;
         }
 
-        .map-fallback p {
-          margin: 0;
-          max-width: 36ch;
+        .map-canvas {
+          height: 420px;
+          border-radius: 22px;
+          overflow: hidden;
+          border: 1px solid var(--line);
+          background: #f8fafc;
+        }
+
+        .map-note {
+          margin: 14px 0 0;
           color: var(--muted);
           line-height: 1.7;
         }
@@ -726,11 +797,18 @@ export default function Home() {
         .map-fallback-note {
           margin-top: 12px;
           padding: 8px 12px;
-          background: white;
+          background: #fff7ed;
           border: 1px solid #fde68a;
           border-radius: 999px;
           font-weight: 800;
           color: #92400e;
+          display: inline-flex;
+        }
+
+        .active-note {
+          background: #ecfeff;
+          border-color: #a5f3fc;
+          color: #0f766e;
         }
 
         .map-list {
@@ -760,6 +838,14 @@ export default function Home() {
         .map-item span {
           color: var(--muted);
           font-size: 0.95rem;
+        }
+
+        .map-empty {
+          color: var(--muted);
+          background: #f8fafc;
+          border-radius: 16px;
+          padding: 14px;
+          border: 1px dashed var(--line);
         }
 
         @media (max-width: 1100px) {
@@ -792,24 +878,13 @@ export default function Home() {
           }
 
           .section-head,
-          .hotel-footer,
-          .listing-header,
-          .room-card {
+          .hotel-footer {
             flex-direction: column;
             align-items: start;
           }
 
           .hero-stats {
             grid-template-columns: 1fr;
-          }
-
-          .room-right {
-            width: 100%;
-            text-align: left;
-          }
-
-          .thumb-row {
-            grid-template-columns: repeat(2, 1fr);
           }
         }
       `}</style>
