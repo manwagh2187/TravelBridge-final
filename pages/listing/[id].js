@@ -1,9 +1,17 @@
-import { useMemo, useRef, useState, useEffect } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import useSWR from 'swr';
 import { apiFetch } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
+
+import 'leaflet/dist/leaflet.css';
+
+const MapContainer = dynamic(() => import('react-leaflet').then((mod) => mod.MapContainer), { ssr: false });
+const TileLayer = dynamic(() => import('react-leaflet').then((mod) => mod.TileLayer), { ssr: false });
+const Marker = dynamic(() => import('react-leaflet').then((mod) => mod.Marker), { ssr: false });
+const Popup = dynamic(() => import('react-leaflet').then((mod) => mod.Popup), { ssr: false });
 
 const fetcher = (url) => apiFetch(url).then((r) => r.json());
 
@@ -32,6 +40,15 @@ export default function ListingPage() {
       }
     }
     return [];
+  }, [hotel]);
+
+  const primaryRoom = rooms[0] || null;
+
+  const mapCenter = useMemo(() => {
+    if (typeof hotel?.latitude === 'number' && typeof hotel?.longitude === 'number') {
+      return [hotel.latitude, hotel.longitude];
+    }
+    return hotel?.city === 'Mumbai' ? [19.076, 72.8777] : [20.5937, 78.9629];
   }, [hotel]);
 
   useEffect(() => {
@@ -92,9 +109,7 @@ export default function ListingPage() {
           <aside className="sticky-card">
             <div className="sticky-badge">Great value</div>
             <h2>Book this stay</h2>
-            <div className="sticky-price">
-              ₹{Number(hotel.minPrice || 0).toLocaleString()}
-            </div>
+            <div className="sticky-price">₹{Number(hotel.minPrice || 0).toLocaleString()}</div>
             <div className="sticky-meta">per night • subject to availability</div>
 
             <ul className="sticky-benefits">
@@ -109,7 +124,7 @@ export default function ListingPage() {
 
             {isAuthenticated ? (
               <Link
-                href={`/booking/checkout?roomId=${rooms[0]?.supplierRoomId || rooms[0]?.id || ''}`}
+                href={`/booking/checkout?roomId=${primaryRoom?.supplierRoomId || primaryRoom?.id || ''}`}
                 className="btn btn-primary full"
               >
                 Reserve now
@@ -148,41 +163,45 @@ export default function ListingPage() {
         <div className="content-grid">
           <div className="left">
             <div className="section-head">
+              <div className="section-kicker">Rooms</div>
               <h2>Available rooms</h2>
               <p>Choose a room that suits your trip.</p>
             </div>
 
-            {rooms.map((room) => (
-              <div className="room-card" key={room.id || room.supplierRoomId}>
-                <div className="room-main">
-                  <div className="room-title">{room.title}</div>
-                  <div className="room-meta">
-                    {room.capacity} guests • {room.inventory} available • Instant confirmation
+            {rooms.length ? (
+              rooms.map((room) => (
+                <div className="room-card" key={room.id || room.supplierRoomId}>
+                  <div className="room-main">
+                    <div className="room-title">{room.title}</div>
+                    <div className="room-meta">
+                      {room.capacity} guests • {room.inventory} available • Instant confirmation
+                    </div>
+                    <div className="room-tags">
+                      <span>Free cancellation</span>
+                      <span>Breakfast option</span>
+                      <span>Pay later</span>
+                    </div>
                   </div>
-                  <div className="room-tags">
-                    <span>Free cancellation</span>
-                    <span>Breakfast option</span>
-                    <span>Pay later</span>
-                  </div>
-                </div>
 
-                <div className="room-right">
-                  <div className="room-price">
-                    ₹{Number(room.pricePerNight || 0).toLocaleString()}
+                  <div className="room-right">
+                    <div className="room-price">₹{Number(room.pricePerNight || 0).toLocaleString()}</div>
+                    <div className="room-night">per night</div>
+
+                    {isAuthenticated ? (
+                      <Link href={`/booking/checkout?roomId=${room.id || room.supplierRoomId}`} className="btn btn-primary">
+                        Select room
+                      </Link>
+                    ) : (
+                      <Link href="/login" className="btn btn-primary">
+                        Login to book
+                      </Link>
+                    )}
                   </div>
-                  <div className="room-night">per night</div>
-                  {isAuthenticated ? (
-                    <Link href={`/booking/checkout?roomId=${room.id || room.supplierRoomId}`} className="btn btn-primary">
-                      Select room
-                    </Link>
-                  ) : (
-                    <Link href="/login" className="btn btn-primary">
-                      Login to book
-                    </Link>
-                  )}
                 </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <div className="empty-box">No rooms available for this property right now.</div>
+            )}
           </div>
 
           <aside className="right">
@@ -204,6 +223,20 @@ export default function ListingPage() {
                 <li>Popular with repeat guests</li>
               </ul>
             </div>
+
+            <div className="info-card highlight-card">
+              <h3>Quick booking</h3>
+              <p>Reserve the first available room in just a few steps.</p>
+              {isAuthenticated && primaryRoom ? (
+                <Link href={`/booking/checkout?roomId=${primaryRoom.id || primaryRoom.supplierRoomId}`} className="btn btn-primary full">
+                  Book now
+                </Link>
+              ) : (
+                <Link href="/login" className="btn btn-primary full">
+                  Login to book
+                </Link>
+              )}
+            </div>
           </aside>
         </div>
 
@@ -212,7 +245,7 @@ export default function ListingPage() {
             <div>
               <div className="section-kicker">Map view</div>
               <h2>{hotel.city} map</h2>
-              <p>Click on the “View on map” button to jump here.</p>
+              <p>Use the map area to orient your stay and nearby context.</p>
             </div>
           </div>
 
@@ -220,12 +253,32 @@ export default function ListingPage() {
             <div className="map-panel">
               <div className="map-fallback">
                 <div className="map-fallback-icon">📍</div>
-                <div className="map-fallback-title">Map preview unavailable</div>
-                <p>
-                  We don’t have live map data for this property yet. Use the location details
-                  and nearby context to plan your stay.
+                <div className="map-fallback-title">Interactive map</div>
+
+                <div className="map-canvas">
+                  <MapContainer center={mapCenter} zoom={12} scrollWheelZoom={false} style={{ height: '100%', width: '100%' }}>
+                    <TileLayer
+                      attribution='&copy; OpenStreetMap contributors'
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
+                    {typeof hotel.latitude === 'number' && typeof hotel.longitude === 'number' ? (
+                      <Marker position={[hotel.latitude, hotel.longitude]}>
+                        <Popup>
+                          <strong>{hotel.title}</strong>
+                          <div>{hotel.city}, {hotel.country}</div>
+                        </Popup>
+                      </Marker>
+                    ) : null}
+                  </MapContainer>
+                </div>
+
+                <p className="map-note">
+                  This map shows the property if coordinates are available.
                 </p>
-                <div className="map-fallback-note">{hotel.city}, {hotel.country}</div>
+
+                <div className="map-fallback-note">
+                  {hotel.city}, {hotel.country}
+                </div>
               </div>
             </div>
 
@@ -242,6 +295,10 @@ export default function ListingPage() {
                   <span>{hotel.city}, {hotel.country}</span>
                 </button>
               ))}
+
+              {!rooms.length ? (
+                <div className="map-empty">No nearby stays available for this destination.</div>
+              ) : null}
             </aside>
           </div>
         </div>
@@ -492,6 +549,15 @@ export default function ListingPage() {
           margin-bottom: 16px;
         }
 
+        .section-kicker {
+          color: #d97706;
+          font-weight: 900;
+          text-transform: uppercase;
+          font-size: 0.78rem;
+          letter-spacing: 0.08em;
+          margin-bottom: 8px;
+        }
+
         .section-head h2 {
           margin: 0;
           font-size: 2rem;
@@ -503,7 +569,8 @@ export default function ListingPage() {
         }
 
         .room-card,
-        .info-card {
+        .info-card,
+        .empty-box {
           background: white;
           border-radius: 24px;
           box-shadow: var(--shadow);
@@ -558,6 +625,10 @@ export default function ListingPage() {
           margin-bottom: 16px;
         }
 
+        .highlight-card {
+          background: linear-gradient(180deg, #fffaf3, #ffffff);
+        }
+
         .info-card h3 {
           margin-top: 0;
         }
@@ -567,6 +638,17 @@ export default function ListingPage() {
           padding-left: 18px;
           color: var(--muted);
           line-height: 2;
+        }
+
+        .info-card p {
+          color: var(--muted);
+          line-height: 1.7;
+          margin-top: 0;
+        }
+
+        .empty-box {
+          padding: 18px;
+          color: var(--muted);
         }
 
         .map-section {
@@ -610,9 +692,17 @@ export default function ListingPage() {
           color: #92400e;
         }
 
-        .map-fallback p {
-          margin: 0;
-          max-width: 36ch;
+        .map-canvas {
+          height: 420px;
+          width: 100%;
+          border-radius: 22px;
+          overflow: hidden;
+          border: 1px solid var(--line);
+          background: #f8fafc;
+        }
+
+        .map-note {
+          margin: 14px 0 0;
           color: var(--muted);
           line-height: 1.7;
         }
@@ -644,12 +734,6 @@ export default function ListingPage() {
           padding: 14px;
           margin-bottom: 12px;
           cursor: pointer;
-          transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .map-item:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
         }
 
         .map-item strong {
@@ -660,6 +744,14 @@ export default function ListingPage() {
         .map-item span {
           color: var(--muted);
           font-size: 0.95rem;
+        }
+
+        .map-empty {
+          color: var(--muted);
+          background: #f8fafc;
+          border-radius: 16px;
+          padding: 14px;
+          border: 1px dashed var(--line);
         }
 
         @media (max-width: 1100px) {

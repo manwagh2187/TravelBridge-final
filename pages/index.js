@@ -6,22 +6,10 @@ import { apiFetch } from '../lib/api';
 
 import 'leaflet/dist/leaflet.css';
 
-const MapContainer = dynamic(
-  () => import('react-leaflet').then((mod) => mod.MapContainer),
-  { ssr: false }
-);
-const TileLayer = dynamic(
-  () => import('react-leaflet').then((mod) => mod.TileLayer),
-  { ssr: false }
-);
-const Marker = dynamic(
-  () => import('react-leaflet').then((mod) => mod.Marker),
-  { ssr: false }
-);
-const Popup = dynamic(
-  () => import('react-leaflet').then((mod) => mod.Popup),
-  { ssr: false }
-);
+const MapContainer = dynamic(() => import('react-leaflet').then((mod) => mod.MapContainer), { ssr: false });
+const TileLayer = dynamic(() => import('react-leaflet').then((mod) => mod.TileLayer), { ssr: false });
+const Marker = dynamic(() => import('react-leaflet').then((mod) => mod.Marker), { ssr: false });
+const Popup = dynamic(() => import('react-leaflet').then((mod) => mod.Popup), { ssr: false });
 
 const fetcher = (url) => apiFetch(url).then((r) => r.json());
 
@@ -43,20 +31,13 @@ export default function Home() {
   const isDateRangeInvalid = checkIn && checkOut ? new Date(checkOut) <= new Date(checkIn) : false;
   const isPartialDateSelection = Boolean(checkIn || checkOut) && !(checkIn && checkOut);
 
-  const { data } = useSWR(
-    `/api/hotels?country=India&city=${encodeURIComponent(destination)}`,
-    fetcher
-  );
-
+  const { data } = useSWR(`/api/hotels?country=India&city=${encodeURIComponent(destination)}`, fetcher);
   const listings = Array.isArray(data) ? data : [];
 
   const sortedListings = useMemo(() => {
     const arr = [...listings];
-    if (selectedSort === 'price-low') {
-      arr.sort((a, b) => (a.minPrice || 0) - (b.minPrice || 0));
-    } else if (selectedSort === 'price-high') {
-      arr.sort((a, b) => (b.minPrice || 0) - (a.minPrice || 0));
-    }
+    if (selectedSort === 'price-low') arr.sort((a, b) => (a.minPrice || 0) - (b.minPrice || 0));
+    else if (selectedSort === 'price-high') arr.sort((a, b) => (b.minPrice || 0) - (a.minPrice || 0));
     return arr;
   }, [listings, selectedSort]);
 
@@ -156,9 +137,7 @@ export default function Home() {
                   onChange={(e) => {
                     const nextCheckIn = e.target.value;
                     setCheckIn(nextCheckIn);
-                    if (checkOut && nextCheckIn && checkOut <= nextCheckIn) {
-                      setCheckOut('');
-                    }
+                    if (checkOut && nextCheckIn && checkOut <= nextCheckIn) setCheckOut('');
                     if (searchError) setSearchError('');
                   }}
                 />

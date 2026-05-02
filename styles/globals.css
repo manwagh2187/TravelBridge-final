@@ -10,7 +10,10 @@
   --shadow: 0 16px 40px rgba(120, 86, 32, 0.12);
   --radius: 20px;
 }
-
+.map-canvas .leaflet-container {
+  height: 100%;
+  width: 100%;
+}
 .map-canvas .leaflet-container {
   height: 100%;
   width: 100%;
