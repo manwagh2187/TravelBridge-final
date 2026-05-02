@@ -1,17 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
 import useSWR from 'swr';
 import { apiFetch } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
-
-import 'leaflet/dist/leaflet.css';
-
-const MapContainer = dynamic(() => import('react-leaflet').then((mod) => mod.MapContainer), { ssr: false });
-const TileLayer = dynamic(() => import('react-leaflet').then((mod) => mod.TileLayer), { ssr: false });
-const Marker = dynamic(() => import('react-leaflet').then((mod) => mod.Marker), { ssr: false });
-const Popup = dynamic(() => import('react-leaflet').then((mod) => mod.Popup), { ssr: false });
 
 const fetcher = (url) => apiFetch(url).then((r) => r.json());
 
@@ -44,16 +36,9 @@ export default function ListingPage() {
 
   const primaryRoom = rooms[0] || null;
 
-  const mapCenter = useMemo(() => {
-    if (typeof hotel?.latitude === 'number' && typeof hotel?.longitude === 'number') {
-      return [hotel.latitude, hotel.longitude];
-    }
-    return hotel?.city === 'Mumbai' ? [19.076, 72.8777] : [20.5937, 78.9629];
-  }, [hotel]);
-
   useEffect(() => {
     setActiveImage(0);
-  }, [id]);
+  }, [id, images.length]);
 
   function handleShowMap() {
     mapRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -253,32 +238,16 @@ export default function ListingPage() {
             <div className="map-panel">
               <div className="map-fallback">
                 <div className="map-fallback-icon">📍</div>
-                <div className="map-fallback-title">Interactive map</div>
-
-                <div className="map-canvas">
-                  <MapContainer center={mapCenter} zoom={12} scrollWheelZoom={false} style={{ height: '100%', width: '100%' }}>
-                    <TileLayer
-                      attribution='&copy; OpenStreetMap contributors'
-                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    />
-                    {typeof hotel.latitude === 'number' && typeof hotel.longitude === 'number' ? (
-                      <Marker position={[hotel.latitude, hotel.longitude]}>
-                        <Popup>
-                          <strong>{hotel.title}</strong>
-                          <div>{hotel.city}, {hotel.country}</div>
-                        </Popup>
-                      </Marker>
-                    ) : null}
-                  </MapContainer>
+                <div className="map-fallback-title">Interactive map coming soon</div>
+                <div className="map-canvas-placeholder">
+                  <div className="map-pin">●</div>
+                  <div className="map-text">{hotel.city}, {hotel.country}</div>
                 </div>
-
-                <p className="map-note">
-                  This map shows the property if coordinates are available.
+                <p>
+                  We don’t have live map data for this property yet. Use the location details
+                  and nearby context to plan your stay.
                 </p>
-
-                <div className="map-fallback-note">
-                  {hotel.city}, {hotel.country}
-                </div>
+                <div className="map-fallback-note">{hotel.city}, {hotel.country}</div>
               </div>
             </div>
 
@@ -692,13 +661,38 @@ export default function ListingPage() {
           color: #92400e;
         }
 
-        .map-canvas {
-          height: 420px;
+        .map-canvas-placeholder {
           width: 100%;
+          height: 420px;
           border-radius: 22px;
-          overflow: hidden;
           border: 1px solid var(--line);
-          background: #f8fafc;
+          background: linear-gradient(135deg, #e0f2fe, #fef3c7);
+          display: grid;
+          place-items: center;
+          gap: 10px;
+          margin: 14px 0;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .map-pin {
+          font-size: 3rem;
+          color: #ef4444;
+          animation: pulse 1.8s infinite;
+        }
+
+        .map-text {
+          font-weight: 900;
+          color: #111827;
+          background: white;
+          padding: 8px 12px;
+          border-radius: 999px;
+          box-shadow: var(--shadow);
+        }
+
+        @keyframes pulse {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-4px); }
         }
 
         .map-note {
@@ -734,6 +728,12 @@ export default function ListingPage() {
           padding: 14px;
           margin-bottom: 12px;
           cursor: pointer;
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .map-item:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
         }
 
         .map-item strong {
