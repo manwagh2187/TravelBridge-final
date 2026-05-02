@@ -177,9 +177,11 @@ export default function ListingPage() {
         <div className="content-grid">
           <div className="left">
             <div className="section-head">
-              <div className="section-kicker">Rooms</div>
-              <h2>Available rooms</h2>
-              <p>Choose a room that suits your trip.</p>
+              <div>
+                <div className="section-kicker">Rooms</div>
+                <h2>Available rooms</h2>
+                <p>Choose a room that suits your trip.</p>
+              </div>
             </div>
 
             {rooms.length ? (
@@ -285,8 +287,7 @@ export default function ListingPage() {
                   </div>
                 </div>
                 <p>
-                  We don’t have live map data for this property yet. Use the location details
-                  and nearby context to plan your stay.
+                  We don’t have live map data for this property yet. Use the location details and nearby context to plan your stay.
                 </p>
                 <div className="map-fallback-note">
                   {hotel.city}, {hotel.country}
@@ -310,9 +311,7 @@ export default function ListingPage() {
                 </button>
               ))}
 
-              {!rooms.length ? (
-                <div className="map-empty">No nearby stays available for this destination.</div>
-              ) : null}
+              {!rooms.length ? <div className="map-empty">No nearby stays available for this destination.</div> : null}
             </aside>
           </div>
         </div>

@@ -8,6 +8,17 @@ const fetcher = (url) => apiFetch(url).then((r) => r.json());
 const DESTINATIONS = ['Mumbai', 'Delhi', 'Bengaluru', 'Chennai', 'Hyderabad', 'Kolkata', 'Goa', 'Jaipur'];
 const today = new Date().toISOString().split('T')[0];
 
+const DESTINATION_IMAGES = {
+  Mumbai: 'https://images.unsplash.com/photo-1529253355930-ddbe423a2ac7?auto=format&fit=crop&w=1200&q=80',
+  Delhi: 'https://images.unsplash.com/photo-1587474260584-136574528ed5?auto=format&fit=crop&w=1200&q=80',
+  Bengaluru: 'https://images.unsplash.com/photo-1566552881560-0be862a7c445?auto=format&fit=crop&w=1200&q=80',
+  Chennai: 'https://images.unsplash.com/photo-1582510003544-4d00b7f74220?auto=format&fit=crop&w=1200&q=80',
+  Hyderabad: 'https://images.unsplash.com/photo-1587474260584-136574528ed5?auto=format&fit=crop&w=1200&q=80',
+  Kolkata: 'https://images.unsplash.com/photo-1548013146-72479768bada?auto=format&fit=crop&w=1200&q=80',
+  Goa: 'https://images.unsplash.com/photo-1519046904884-53103b34b206?auto=format&fit=crop&w=1200&q=80',
+  Jaipur: 'https://images.unsplash.com/photo-1477587458883-47145ed94245?auto=format&fit=crop&w=1200&q=80',
+};
+
 export default function Home() {
   const resultsRef = useRef(null);
   const mapRef = useRef(null);
@@ -82,10 +93,10 @@ export default function Home() {
       <section className="hero">
         <div className="container hero-grid">
           <div className="hero-copy">
-            <div className="eyebrow">Travel smarter, stay better</div>
+            <div className="hero-eyebrow">Travel smarter, stay better</div>
             <h1>Find your perfect stay in India</h1>
             <p>
-              Compare stays, explore deals, and book your next hotel in a cleaner, faster, more delightful way.
+              Compare stays, explore deals, and book your next hotel with a cleaner, faster, and more premium experience.
             </p>
 
             <div className="trust-strip">
@@ -153,7 +164,12 @@ export default function Home() {
                 </select>
               </div>
 
-              <button className="btn btn-primary search-btn" onClick={handleSearch} type="button" disabled={isDateRangeInvalid}>
+              <button
+                className="btn btn-primary search-btn"
+                onClick={handleSearch}
+                type="button"
+                disabled={isDateRangeInvalid}
+              >
                 Search
               </button>
             </div>
@@ -177,7 +193,15 @@ export default function Home() {
           <div className="hero-card">
             <div className="hero-card-badge">Best deals today</div>
             <h3>Save more when you book early</h3>
-            <p>Trending destinations, clean rooms, and instant checkout flow.</p>
+            <p>Trending destinations, curated stays, and a smooth booking flow.</p>
+
+            <div className="hero-visual">
+              <img src={DESTINATION_IMAGES[destination] || DESTINATION_IMAGES.Mumbai} alt={destination} />
+              <div className="hero-visual-overlay">
+                <div className="overlay-title">{destination}</div>
+                <div className="overlay-subtitle">Popular stays and curated deals</div>
+              </div>
+            </div>
 
             <div className="hero-stats">
               <div><strong>4.8/5</strong><span>Guest rating</span></div>
@@ -228,11 +252,14 @@ export default function Home() {
                 <div className="hotel-image">
                   {cover ? <img src={cover} alt={listing.title} /> : <div className="placeholder">TravelBridge</div>}
                   <div className="deal-badge">Deal</div>
+                  <div className="price-tag">₹{Number(listing.minPrice || 0).toLocaleString()}</div>
                 </div>
 
                 <div className="hotel-body">
                   <div className="hotel-topline">
-                    <div className="location">{listing.city}, {listing.country}</div>
+                    <div className="location">
+                      {listing.city}, {listing.country}
+                    </div>
                     <div className="rating">8.9 Excellent</div>
                   </div>
 
@@ -287,6 +314,50 @@ export default function Home() {
             </div>
           </div>
         ) : null}
+      </section>
+
+      <section className="container map-section" ref={mapRef}>
+        <div className="section-head">
+          <div>
+            <div className="section-kicker">Map view</div>
+            <h2>{destination} map</h2>
+            <p>Click a property above to jump here.</p>
+          </div>
+        </div>
+
+        <div className="map-layout">
+          <div className="map-panel">
+            <div className="map-fallback">
+              <div className="map-fallback-icon">📍</div>
+              <div className="map-fallback-title">Map preview unavailable</div>
+              <div className="map-canvas-placeholder">
+                <div className="map-pin">●</div>
+                <div className="map-text">{destination}</div>
+              </div>
+              <p>No live map data is available right now. Please use the nearby stays list below.</p>
+              <div className="map-fallback-note">{destination}</div>
+            </div>
+          </div>
+
+          <aside className="map-list">
+            <h3>Nearby stays</h3>
+            {sortedListings.slice(0, 3).map((listing) => (
+              <button
+                key={listing.id}
+                type="button"
+                className="map-item"
+                onClick={() => setSelectedListingId(listing.id)}
+              >
+                <strong>{listing.title}</strong>
+                <span>
+                  {listing.city}, {listing.country}
+                </span>
+              </button>
+            ))}
+
+            {!sortedListings.length ? <div className="map-empty">No nearby stays available for this destination.</div> : null}
+          </aside>
+        </div>
       </section>
     </div>
   );
