@@ -7,6 +7,51 @@ import { useAuth } from '../../context/AuthContext';
 
 const fetcher = (url) => apiFetch(url).then((r) => r.json());
 
+function getListingImages(listing) {
+  if (!listing) return [];
+  if (Array.isArray(listing.images)) return listing.images;
+  if (typeof listing.imagesJson === 'string') {
+    try {
+      const parsed = JSON.parse(listing.imagesJson);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
+function normalizeHotel(data) {
+  if (!data) return null;
+
+  return {
+    id: data.id,
+    title: data.title || data.name || 'Hotel',
+    description: data.description || '',
+    city: data.city || '',
+    country: data.country || 'India',
+    state: data.state || '',
+    address: data.address || '',
+    latitude: data.latitude ?? null,
+    longitude: data.longitude ?? null,
+    starRating: data.starRating ?? null,
+    minPrice: data.minPrice ?? null,
+    images: getListingImages(data),
+  };
+}
+
+function normalizeRooms(data) {
+  if (!Array.isArray(data)) return [];
+  return data.map((room) => ({
+    id: room.id || room.supplierRoomId,
+    supplierRoomId: room.supplierRoomId || room.id,
+    title: room.title || room.name || 'Room',
+    capacity: room.capacity || room.guests || 2,
+    inventory: room.inventory ?? room.available ?? 0,
+    pricePerNight: room.pricePerNight ?? room.price ?? 0,
+  }));
+}
+
 export default function ListingPage() {
   const router = useRouter();
   const { id, checkIn, checkOut, guests, destination } = router.query;
@@ -18,22 +63,9 @@ export default function ListingPage() {
   const { data: hotelData } = useSWR(id ? `/api/hotels/${id}` : null, fetcher);
   const { data: roomData } = useSWR(id ? `/api/hotels/${id}/rooms` : null, fetcher);
 
-  const hotel = hotelData || null;
-  const rooms = Array.isArray(roomData) ? roomData : [];
-
-  const images = useMemo(() => {
-    if (!hotel) return [];
-    if (Array.isArray(hotel.images)) return hotel.images;
-    if (typeof hotel.imagesJson === 'string') {
-      try {
-        return JSON.parse(hotel.imagesJson) || [];
-      } catch {
-        return [];
-      }
-    }
-    return [];
-  }, [hotel]);
-
+  const hotel = useMemo(() => normalizeHotel(hotelData), [hotelData]);
+  const rooms = useMemo(() => normalizeRooms(roomData), [roomData]);
+  const images = hotel?.images || [];
   const primaryRoom = rooms[0] || null;
 
   useEffect(() => {
@@ -124,7 +156,9 @@ export default function ListingPage() {
 
         <div className="listing-header">
           <div>
-            <div className="crumb-text">{hotel.city}, {hotel.country}</div>
+            <div className="crumb-text">
+              {hotel.city}, {hotel.country}
+            </div>
             <h1>{hotel.title}</h1>
             <p>{hotel.description}</p>
 
@@ -173,7 +207,10 @@ export default function ListingPage() {
                     <div className="room-night">per night</div>
 
                     {isAuthenticated ? (
-                      <Link href={`/booking/checkout?roomId=${room.id || room.supplierRoomId}`} className="btn btn-primary">
+                      <Link
+                        href={`/booking/checkout?roomId=${room.id || room.supplierRoomId}`}
+                        className="btn btn-primary"
+                      >
                         Select room
                       </Link>
                     ) : (
@@ -213,7 +250,10 @@ export default function ListingPage() {
               <h3>Quick booking</h3>
               <p>Reserve the first available room in just a few steps.</p>
               {isAuthenticated && primaryRoom ? (
-                <Link href={`/booking/checkout?roomId=${primaryRoom.id || primaryRoom.supplierRoomId}`} className="btn btn-primary full">
+                <Link
+                  href={`/booking/checkout?roomId=${primaryRoom.id || primaryRoom.supplierRoomId}`}
+                  className="btn btn-primary full"
+                >
                   Book now
                 </Link>
               ) : (
@@ -241,13 +281,17 @@ export default function ListingPage() {
                 <div className="map-fallback-title">Interactive map coming soon</div>
                 <div className="map-canvas-placeholder">
                   <div className="map-pin">●</div>
-                  <div className="map-text">{hotel.city}, {hotel.country}</div>
+                  <div className="map-text">
+                    {hotel.city}, {hotel.country}
+                  </div>
                 </div>
                 <p>
                   We don’t have live map data for this property yet. Use the location details
                   and nearby context to plan your stay.
                 </p>
-                <div className="map-fallback-note">{hotel.city}, {hotel.country}</div>
+                <div className="map-fallback-note">
+                  {hotel.city}, {hotel.country}
+                </div>
               </div>
             </div>
 
@@ -261,7 +305,9 @@ export default function ListingPage() {
                   onClick={() => setActiveImage(0)}
                 >
                   <strong>{room.title}</strong>
-                  <span>{hotel.city}, {hotel.country}</span>
+                  <span>
+                    {hotel.city}, {hotel.country}
+                  </span>
                 </button>
               ))}
 
@@ -272,517 +318,6 @@ export default function ListingPage() {
           </div>
         </div>
       </div>
-
-      <style jsx>{`
-        .listing-shell {
-          background: linear-gradient(180deg, #f5f1eb 0%, #efe8df 100%);
-          min-height: 100vh;
-          padding-bottom: 64px;
-        }
-
-        .listing-page {
-          padding: 24px 0 0;
-        }
-
-        .breadcrumb {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-          color: var(--muted);
-          font-size: 0.95rem;
-          margin-bottom: 18px;
-        }
-
-        .breadcrumb a {
-          color: #b45309;
-          font-weight: 700;
-        }
-
-        .search-context {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 10px;
-          margin-bottom: 18px;
-        }
-
-        .search-context span {
-          display: inline-flex;
-          background: #fff7ed;
-          color: #92400e;
-          border: 1px solid #fde68a;
-          padding: 8px 12px;
-          border-radius: 999px;
-          font-weight: 800;
-          font-size: 0.9rem;
-        }
-
-        .listing-hero {
-          display: grid;
-          grid-template-columns: minmax(0, 1.7fr) 360px;
-          gap: 18px;
-          align-items: start;
-          margin-bottom: 24px;
-        }
-
-        .gallery {
-          background: white;
-          padding: 16px;
-          border-radius: 28px;
-          box-shadow: var(--shadow);
-          border: 1px solid rgba(226,232,240,0.85);
-        }
-
-        .main-image {
-          border-radius: 22px;
-          overflow: hidden;
-          min-height: 420px;
-          background: #e2e8f0;
-        }
-
-        .main-image img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          display: block;
-        }
-
-        .placeholder {
-          min-height: 420px;
-          display: grid;
-          place-items: center;
-          font-size: 2rem;
-          font-weight: 900;
-          background: linear-gradient(135deg, #fef3c7, #f8fafc);
-          color: #b45309;
-        }
-
-        .thumb-row {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 10px;
-          margin-top: 12px;
-        }
-
-        .thumb {
-          border: 0;
-          padding: 0;
-          border-radius: 16px;
-          overflow: hidden;
-          min-height: 88px;
-          background: #e2e8f0;
-          cursor: pointer;
-          opacity: 0.88;
-          transition: 0.2s ease;
-        }
-
-        .thumb.active {
-          outline: 3px solid #d97706;
-          opacity: 1;
-        }
-
-        .thumb img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          display: block;
-        }
-
-        .sticky-card {
-          position: sticky;
-          top: 92px;
-          background: white;
-          border-radius: 28px;
-          padding: 22px;
-          box-shadow: var(--shadow);
-          border: 1px solid rgba(226,232,240,0.85);
-        }
-
-        .sticky-badge {
-          display: inline-flex;
-          background: #fff7ed;
-          color: #b45309;
-          padding: 8px 12px;
-          border-radius: 999px;
-          font-weight: 800;
-          margin-bottom: 12px;
-        }
-
-        .sticky-card h2 {
-          margin: 0 0 10px;
-          font-size: 1.6rem;
-        }
-
-        .sticky-price {
-          font-size: 2.2rem;
-          font-weight: 900;
-          letter-spacing: -0.04em;
-        }
-
-        .sticky-meta {
-          color: var(--muted);
-          margin-top: 4px;
-        }
-
-        .sticky-benefits {
-          margin: 18px 0 0;
-          padding-left: 18px;
-          color: var(--text);
-          line-height: 1.9;
-        }
-
-        .full {
-          width: 100%;
-          margin-top: 18px;
-        }
-
-        .listing-header {
-          display: flex;
-          justify-content: space-between;
-          gap: 20px;
-          align-items: start;
-          margin: 0 0 22px;
-          padding: 24px;
-          background: white;
-          border-radius: 28px;
-          box-shadow: var(--shadow);
-          border: 1px solid rgba(226,232,240,0.85);
-        }
-
-        .crumb-text {
-          color: #b45309;
-          font-weight: 900;
-          margin-bottom: 8px;
-        }
-
-        h1 {
-          margin: 0 0 10px;
-          font-size: 2.7rem;
-          letter-spacing: -0.04em;
-        }
-
-        .listing-header p {
-          color: var(--muted);
-          line-height: 1.8;
-          max-width: 72ch;
-          margin: 0;
-        }
-
-        .feature-row {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 10px;
-          margin-top: 16px;
-        }
-
-        .feature-row span,
-        .room-tags span {
-          padding: 8px 12px;
-          border-radius: 999px;
-          background: #fff7ed;
-          border: 1px solid #fde68a;
-          font-weight: 700;
-          color: #0f172a;
-          font-size: 0.9rem;
-        }
-
-        .score-card {
-          min-width: 220px;
-          background: #fff7ed;
-          border-radius: 20px;
-          padding: 16px;
-          display: flex;
-          gap: 14px;
-          align-items: center;
-        }
-
-        .score {
-          width: 54px;
-          height: 54px;
-          border-radius: 16px;
-          background: #d97706;
-          color: white;
-          display: grid;
-          place-items: center;
-          font-weight: 900;
-          flex: 0 0 auto;
-        }
-
-        .content-grid {
-          display: grid;
-          grid-template-columns: minmax(0, 1fr) 320px;
-          gap: 18px;
-          align-items: start;
-        }
-
-        .section-head {
-          margin-bottom: 16px;
-        }
-
-        .section-kicker {
-          color: #d97706;
-          font-weight: 900;
-          text-transform: uppercase;
-          font-size: 0.78rem;
-          letter-spacing: 0.08em;
-          margin-bottom: 8px;
-        }
-
-        .section-head h2 {
-          margin: 0;
-          font-size: 2rem;
-        }
-
-        .section-head p {
-          margin: 8px 0 0;
-          color: var(--muted);
-        }
-
-        .room-card,
-        .info-card,
-        .empty-box {
-          background: white;
-          border-radius: 24px;
-          box-shadow: var(--shadow);
-          border: 1px solid rgba(226,232,240,0.85);
-        }
-
-        .room-card {
-          padding: 20px;
-          display: flex;
-          justify-content: space-between;
-          gap: 20px;
-          margin-bottom: 14px;
-          align-items: center;
-        }
-
-        .room-title {
-          font-size: 1.2rem;
-          font-weight: 900;
-          letter-spacing: -0.02em;
-        }
-
-        .room-meta {
-          color: var(--muted);
-          margin-top: 6px;
-        }
-
-        .room-tags {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-          margin-top: 14px;
-        }
-
-        .room-right {
-          min-width: 170px;
-          text-align: right;
-        }
-
-        .room-price {
-          font-size: 1.9rem;
-          font-weight: 900;
-          letter-spacing: -0.03em;
-        }
-
-        .room-night {
-          color: var(--muted);
-          margin-bottom: 10px;
-        }
-
-        .info-card {
-          padding: 22px;
-          margin-bottom: 16px;
-        }
-
-        .highlight-card {
-          background: linear-gradient(180deg, #fffaf3, #ffffff);
-        }
-
-        .info-card h3 {
-          margin-top: 0;
-        }
-
-        .info-card ul {
-          margin: 0;
-          padding-left: 18px;
-          color: var(--muted);
-          line-height: 2;
-        }
-
-        .info-card p {
-          color: var(--muted);
-          line-height: 1.7;
-          margin-top: 0;
-        }
-
-        .empty-box {
-          padding: 18px;
-          color: var(--muted);
-        }
-
-        .map-section {
-          margin-top: 28px;
-        }
-
-        .map-layout {
-          display: grid;
-          grid-template-columns: minmax(0, 1.5fr) 320px;
-          gap: 18px;
-          align-items: start;
-        }
-
-        .map-panel,
-        .map-list {
-          background: white;
-          border-radius: 28px;
-          box-shadow: var(--shadow);
-          border: 1px solid rgba(226,232,240,0.85);
-          overflow: hidden;
-        }
-
-        .map-fallback {
-          min-height: 420px;
-          display: grid;
-          place-items: center;
-          text-align: center;
-          padding: 28px;
-          background: linear-gradient(135deg, #fff7ed, #faf5ee);
-        }
-
-        .map-fallback-icon {
-          font-size: 2.5rem;
-          margin-bottom: 8px;
-        }
-
-        .map-fallback-title {
-          font-size: 1.4rem;
-          font-weight: 900;
-          margin-bottom: 8px;
-          color: #92400e;
-        }
-
-        .map-canvas-placeholder {
-          width: 100%;
-          height: 420px;
-          border-radius: 22px;
-          border: 1px solid var(--line);
-          background: linear-gradient(135deg, #e0f2fe, #fef3c7);
-          display: grid;
-          place-items: center;
-          gap: 10px;
-          margin: 14px 0;
-          position: relative;
-          overflow: hidden;
-        }
-
-        .map-pin {
-          font-size: 3rem;
-          color: #ef4444;
-          animation: pulse 1.8s infinite;
-        }
-
-        .map-text {
-          font-weight: 900;
-          color: #111827;
-          background: white;
-          padding: 8px 12px;
-          border-radius: 999px;
-          box-shadow: var(--shadow);
-        }
-
-        @keyframes pulse {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-4px); }
-        }
-
-        .map-note {
-          margin: 14px 0 0;
-          color: var(--muted);
-          line-height: 1.7;
-        }
-
-        .map-fallback-note {
-          margin-top: 12px;
-          padding: 8px 12px;
-          background: white;
-          border: 1px solid #fde68a;
-          border-radius: 999px;
-          font-weight: 800;
-          color: #92400e;
-        }
-
-        .map-list {
-          padding: 20px;
-        }
-
-        .map-list h3 {
-          margin-top: 0;
-        }
-
-        .map-item {
-          width: 100%;
-          text-align: left;
-          background: #fff7ed;
-          border: 1px solid #fde68a;
-          border-radius: 18px;
-          padding: 14px;
-          margin-bottom: 12px;
-          cursor: pointer;
-          transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .map-item:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
-        }
-
-        .map-item strong {
-          display: block;
-          margin-bottom: 6px;
-        }
-
-        .map-item span {
-          color: var(--muted);
-          font-size: 0.95rem;
-        }
-
-        .map-empty {
-          color: var(--muted);
-          background: #f8fafc;
-          border-radius: 16px;
-          padding: 14px;
-          border: 1px dashed var(--line);
-        }
-
-        @media (max-width: 1100px) {
-          .listing-hero,
-          .content-grid,
-          .map-layout {
-            grid-template-columns: 1fr;
-          }
-
-          .sticky-card {
-            position: static;
-          }
-        }
-
-        @media (max-width: 720px) {
-          .listing-header,
-          .room-card {
-            flex-direction: column;
-            align-items: start;
-          }
-
-          .room-right {
-            width: 100%;
-            text-align: left;
-          }
-
-          .thumb-row {
-            grid-template-columns: repeat(2, 1fr);
-          }
-        }
-      `}</style>
     </div>
   );
 }
