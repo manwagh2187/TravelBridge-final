@@ -18,6 +18,8 @@ export default function Navbar() {
         ? user.email
         : 'User';
 
+  const isActive = (path) => router.pathname === path;
+
   return (
     <header className="topbar">
       <div className="container topbar-inner">
@@ -26,13 +28,21 @@ export default function Navbar() {
         </Link>
 
         <nav className="nav">
-          <Link href="/" className="nav-link">Home</Link>
-          <Link href="/booking/bookings" className="nav-link">My Bookings</Link>
+          <Link href="/" className={`nav-link ${isActive('/') ? 'active' : ''}`}>
+            Home
+          </Link>
+          <Link href="/booking/bookings" className={`nav-link ${isActive('/booking/bookings') ? 'active' : ''}`}>
+            My Bookings
+          </Link>
 
           {!isAuthenticated ? (
             <>
-              <Link href="/login" className="nav-link">Login</Link>
-              <Link href="/signup" className="btn btn-primary">Sign up</Link>
+              <Link href="/login" className={`nav-link ${isActive('/login') ? 'active' : ''}`}>
+                Login
+              </Link>
+              <Link href="/signup" className="btn btn-primary">
+                Sign up
+              </Link>
             </>
           ) : (
             <>
@@ -44,6 +54,24 @@ export default function Navbar() {
           )}
         </nav>
       </div>
+
+      <style jsx>{`
+        .nav-link.active {
+          color: var(--text);
+        }
+
+        @media (max-width: 720px) {
+          .topbar-inner {
+            flex-direction: column;
+            align-items: start;
+            padding: 14px 0;
+          }
+
+          .nav {
+            width: 100%;
+          }
+        }
+      `}</style>
     </header>
   );
 }
