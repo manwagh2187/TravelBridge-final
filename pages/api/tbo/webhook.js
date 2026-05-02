@@ -1,15 +1,14 @@
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
-    res.status(405).json({ error: 'Method not allowed' });
-    return;
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
     // TODO: verify webhook signature if TBO provides one
-    // TODO: update booking/payment/voucher records
+    // TODO: update local booking/payment/voucher records here
 
-    res.status(200).json({ ok: true });
+    return res.status(200).json({ ok: true });
   } catch (err) {
-    res.status(500).json({ error: err.message || 'Webhook handling failed' });
+    return res.status(500).json({ error: err.message || 'Webhook handling failed' });
   }
 }

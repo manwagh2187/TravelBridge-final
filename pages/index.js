@@ -293,17 +293,14 @@ export default function Home() {
 
         <div className="hotel-grid">
           {sortedListings.map((listing) => {
-            const cover = Array.isArray(listing.imagesJson)
-              ? listing.imagesJson[0]
-              : (() => {
-                  try {
-                    const parsed = JSON.parse(listing.imagesJson || '[]');
-                    return parsed[0];
-                  } catch {
-                    return null;
-                  }
-                })();
+            let images = [];
+            try {
+              images = JSON.parse(listing.imagesJson || '[]');
+            } catch {
+              images = [];
+            }
 
+            const cover = images[0] || null;
             const isSelected = selectedListingId === listing.id;
 
             return (
@@ -337,7 +334,6 @@ export default function Home() {
                   </div>
 
                   <div className="room-meta">
-                    <span>{Array.isArray(listing.roomsJson) ? listing.roomsJson.length : 0} room types</span>
                     <span>{listing.starRating ? `${listing.starRating} star` : 'No rating'}</span>
                     <span>Up to {guests} guests</span>
                   </div>

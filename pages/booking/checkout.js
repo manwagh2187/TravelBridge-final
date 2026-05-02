@@ -28,12 +28,24 @@ export default function Checkout() {
       if (!roomId) return;
 
       try {
-        const roomRes = await apiFetch(`/api/hotels/rooms/${roomId}`);
+        const roomRes = await apiFetch(`/api/hotels/${router.query.hotelId || ''}/rooms`);
         const roomJson = await roomRes.json();
 
         if (roomRes.ok) {
-          setRoom(roomJson.room || roomJson);
-          setHotel(roomJson.hotel || null);
+          const roomList = Array.isArray(roomJson) ? roomJson : [];
+          const foundRoom = roomList.find(
+            (r) => String(r.id || r.supplierRoomId) === String(roomId)
+          );
+
+          if (foundRoom) {
+            setRoom(foundRoom);
+          }
+        }
+
+        if (router.query.hotelId) {
+          const hotelRes = await apiFetch(`/api/hotels/${router.query.hotelId}`);
+          const hotelJson = await hotelRes.json();
+          if (hotelRes.ok) setHotel(hotelJson);
         }
       } catch (err) {
         console.error(err);
@@ -41,7 +53,7 @@ export default function Checkout() {
     }
 
     load();
-  }, [roomId]);
+  }, [roomId, router.query.hotelId]);
 
   const nights = useMemo(() => {
     if (!startDate || !endDate) return 0;
@@ -139,7 +151,7 @@ export default function Checkout() {
             {message ? <div className="message">{message}</div> : null}
 
             <div className="back-link">
-              <Link href={`/listing/${hotel?.id || ''}`}>Back to listing</Link>
+              <Link href={`/listing/${router.query.hotelId || ''}`}>Back to listing</Link>
             </div>
           </section>
 

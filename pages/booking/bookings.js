@@ -52,7 +52,7 @@ export default function BookingsPage() {
                   {b.endDate ? new Date(b.endDate).toLocaleDateString() : ''}
                 </div>
                 <div className="booking-submeta">
-                  Room ID: {b.roomId || 'N/A'} • {b.room?.title || b.room?.listing?.title || 'Listing'}
+                  Room: {b.room?.title || b.room?.listing?.title || b.roomId || 'N/A'}
                 </div>
               </div>
 
