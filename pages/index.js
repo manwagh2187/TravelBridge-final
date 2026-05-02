@@ -47,10 +47,10 @@ export default function Home() {
   const isPartialDateSelection =
     Boolean(checkIn || checkOut) && !(checkIn && checkOut);
 
-  const { data } = useSWR(
-    `/api/listings?city=${encodeURIComponent(destination)}`,
-    fetcher
-  );
+const { data } = useSWR(
+  `/api/hotels?country=India&city=${encodeURIComponent(destination)}`,
+  fetcher
+);
 
   const listings = Array.isArray(data) ? data : [];
 

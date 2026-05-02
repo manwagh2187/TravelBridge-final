@@ -27,9 +27,11 @@ export default function Checkout() {
   useEffect(() => {
     async function load() {
       if (!roomId) return;
+
       const res = await apiFetch('/api/listings');
       const data = await res.json();
       const listings = Array.isArray(data) ? data : [];
+
       for (const l of listings) {
         const foundRoom = (l.rooms || []).find(r => String(r.id) === String(roomId));
         if (foundRoom) {
@@ -39,6 +41,7 @@ export default function Checkout() {
         }
       }
     }
+
     load();
   }, [roomId]);
 
@@ -56,6 +59,7 @@ export default function Checkout() {
 
   async function handleBook() {
     if (!roomId) return;
+
     setLoading(true);
     setMessage('');
 
@@ -67,6 +71,7 @@ export default function Checkout() {
       });
 
       const booking = await res.json();
+
       if (!res.ok) {
         setMessage(booking.error || 'Booking failed');
         return;
@@ -79,6 +84,7 @@ export default function Checkout() {
       });
 
       const payJson = await payRes.json();
+
       if (!payRes.ok) {
         setMessage(payJson.error || 'Failed to create payment session');
         return;
