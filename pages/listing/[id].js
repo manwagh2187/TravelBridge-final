@@ -23,17 +23,12 @@ function getListingImages(listing) {
 
 function normalizeHotel(data) {
   if (!data) return null;
-
   return {
     id: data.id,
     title: data.title || data.name || 'Hotel',
     description: data.description || '',
     city: data.city || '',
     country: data.country || 'India',
-    state: data.state || '',
-    address: data.address || '',
-    latitude: data.latitude ?? null,
-    longitude: data.longitude ?? null,
     starRating: data.starRating ?? null,
     minPrice: data.minPrice ?? null,
     images: getListingImages(data),
@@ -57,8 +52,8 @@ export default function ListingPage() {
   const { id, checkIn, checkOut, guests, destination } = router.query;
   const { isAuthenticated } = useAuth();
 
-  const [activeImage, setActiveImage] = useState(0);
   const mapRef = useRef(null);
+  const [activeImage, setActiveImage] = useState(0);
 
   const { data: hotelData } = useSWR(id ? `/api/hotels/${id}` : null, fetcher);
   const { data: roomData } = useSWR(id ? `/api/hotels/${id}/rooms` : null, fetcher);
@@ -222,7 +217,11 @@ export default function ListingPage() {
                 </div>
               ))
             ) : (
-              <div className="empty-box">No rooms available for this property right now.</div>
+              <div className="empty-box">
+                <div className="empty-icon">🛏️</div>
+                <strong>No rooms available right now.</strong>
+                <p>Try again later or browse a different destination.</p>
+              </div>
             )}
           </div>
 
