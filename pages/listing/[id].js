@@ -249,7 +249,7 @@ export default function ListingPage() {
 
       <style jsx>{`
         .listing-shell {
-          background: linear-gradient(180deg, #f5f3ef 0%, #efe8df 100%);
+          background: linear-gradient(180deg, #f5f1eb 0%, #efe8df 100%);
           min-height: 100vh;
           padding-bottom: 64px;
         }

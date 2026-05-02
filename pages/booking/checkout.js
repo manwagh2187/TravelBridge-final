@@ -112,7 +112,7 @@ export default function Checkout() {
       <div className="container checkout-page">
         <div className="checkout-grid">
           <section className="checkout-main">
-            <div className="badge">Secure checkout</div>
+            <div className="section-kicker">Secure checkout</div>
             <h1>Complete your booking</h1>
             <p>Choose your stay dates and confirm your reservation.</p>
 
@@ -200,6 +200,166 @@ export default function Checkout() {
           </aside>
         </div>
       </div>
+
+      <style jsx>{`
+        .checkout-shell {
+          background: linear-gradient(180deg, #f5f1eb 0%, #efe8df 100%);
+          min-height: 100vh;
+          padding: 34px 0 70px;
+        }
+
+        .checkout-grid {
+          display: grid;
+          grid-template-columns: minmax(0, 1.3fr) 420px;
+          gap: 20px;
+          align-items: start;
+        }
+
+        .checkout-main,
+        .summary-card {
+          background: white;
+          border-radius: 28px;
+          padding: 26px;
+          box-shadow: var(--shadow);
+          border: 1px solid rgba(226,232,240,0.85);
+        }
+
+        .section-kicker {
+          color: #d97706;
+          font-weight: 900;
+          text-transform: uppercase;
+          font-size: 0.78rem;
+          letter-spacing: 0.08em;
+          margin-bottom: 10px;
+        }
+
+        h1 {
+          margin: 0 0 10px;
+          font-size: clamp(2rem, 4vw, 3.2rem);
+          letter-spacing: -0.05em;
+        }
+
+        p {
+          color: var(--muted);
+          line-height: 1.8;
+          margin: 0 0 22px;
+        }
+
+        .form-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 14px;
+        }
+
+        .field label {
+          display: block;
+          margin-bottom: 8px;
+          font-weight: 800;
+          color: #374151;
+        }
+
+        .field input,
+        .field select {
+          width: 100%;
+          border: 1px solid var(--line);
+          border-radius: 16px;
+          padding: 14px 14px;
+          background: white;
+        }
+
+        .notice {
+          margin: 18px 0;
+          background: #fff7ed;
+          border: 1px solid #fde68a;
+          border-radius: 18px;
+          padding: 14px 16px;
+          color: var(--text);
+        }
+
+        .full {
+          width: 100%;
+          margin-top: 10px;
+          padding: 14px 18px;
+        }
+
+        .back-link {
+          margin-top: 18px;
+        }
+
+        .back-link a {
+          color: #b45309;
+          font-weight: 800;
+        }
+
+        .summary-badge {
+          display: inline-flex;
+          background: #fff7ed;
+          color: #b45309;
+          padding: 8px 12px;
+          border-radius: 999px;
+          font-weight: 800;
+          margin-bottom: 14px;
+        }
+
+        .summary-title {
+          font-weight: 900;
+          font-size: 1.5rem;
+          letter-spacing: -0.03em;
+          margin-bottom: 6px;
+        }
+
+        .summary-location,
+        .summary-meta {
+          color: var(--muted);
+          margin-top: 4px;
+        }
+
+        .summary-room {
+          margin-top: 18px;
+          font-weight: 800;
+          font-size: 1.05rem;
+        }
+
+        .price-row,
+        .total-row {
+          display: flex;
+          justify-content: space-between;
+          gap: 16px;
+          align-items: center;
+          padding: 12px 0;
+          border-bottom: 1px solid var(--line);
+        }
+
+        .total-row {
+          border-bottom: 0;
+          margin-top: 6px;
+          font-size: 1.1rem;
+        }
+
+        .total-row strong {
+          font-size: 1.4rem;
+          color: #b45309;
+        }
+
+        .summary-features {
+          margin: 18px 0 0;
+          padding-left: 18px;
+          color: var(--text);
+          line-height: 1.9;
+        }
+
+        @media (max-width: 1100px) {
+          .checkout-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        @media (max-width: 720px) {
+          .form-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
     </div>
   );
 }

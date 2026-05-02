@@ -37,6 +37,10 @@ button, input, select {
   font: inherit;
 }
 
+main {
+  min-height: calc(100vh - 76px);
+}
+
 .container {
   width: min(1200px, calc(100% - 32px));
   margin: 0 auto;
@@ -46,7 +50,7 @@ button, input, select {
   position: sticky;
   top: 0;
   z-index: 50;
-  background: rgba(255, 250, 243, 0.9);
+  background: rgba(255, 250, 243, 0.92);
   backdrop-filter: blur(18px);
   border-bottom: 1px solid rgba(234, 223, 206, 0.9);
 }
@@ -89,6 +93,9 @@ button, input, select {
   font-weight: 800;
   cursor: pointer;
   transition: 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-primary {
@@ -118,4 +125,19 @@ button, input, select {
   color: #92400e;
   border-radius: 999px;
   font-weight: 700;
+}
+
+.search-error,
+.message {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: white;
+  border: 1px solid #f3c97a;
+  color: #92400e;
+  box-shadow: var(--shadow);
+}
+
+.full {
+  width: 100%;
 }

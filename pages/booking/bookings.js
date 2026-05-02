@@ -28,15 +28,13 @@ export default function BookingsPage() {
     <div className="bookings-shell">
       <div className="container bookings-page">
         <div className="page-head">
-          <div>
-            <div className="badge">Trips</div>
-            <h1>My bookings</h1>
-            <p>Track your reservations and booking status.</p>
-          </div>
+          <div className="section-kicker">Trips</div>
+          <h1>My bookings</h1>
+          <p>Track your reservations and booking status.</p>
         </div>
 
-        {loading ? <div className="loading">Loading...</div> : null}
-        {!loading && bookings.length === 0 ? <div className="empty">No bookings yet.</div> : null}
+        {loading ? <div className="state-box">Loading...</div> : null}
+        {!loading && bookings.length === 0 ? <div className="state-box">No bookings yet.</div> : null}
 
         <div className="booking-list">
           {bookings.map((b) => (
@@ -51,8 +49,10 @@ export default function BookingsPage() {
                   {b.startDate ? new Date(b.startDate).toLocaleDateString() : ''} →{' '}
                   {b.endDate ? new Date(b.endDate).toLocaleDateString() : ''}
                 </div>
+
                 <div className="booking-submeta">
-                  Room: {b.room?.title || b.room?.listing?.title || b.roomId || 'N/A'}
+                  {b.room?.title || b.room?.listing?.title || b.roomId || 'Room'} •{' '}
+                  {b.roomId ? `Room ID: ${b.roomId}` : 'No room ID'}
                 </div>
               </div>
 
@@ -67,50 +67,44 @@ export default function BookingsPage() {
 
       <style jsx>{`
         .bookings-shell {
-          background: linear-gradient(180deg, #f5f3ef 0%, #efe8df 100%);
+          background: linear-gradient(180deg, #f5f1eb 0%, #efe8df 100%);
           min-height: 100vh;
-          padding-bottom: 64px;
-        }
-
-        .bookings-page {
-          padding: 28px 0 0;
+          padding: 34px 0 70px;
         }
 
         .page-head {
           margin-bottom: 18px;
         }
 
-        .badge {
-          display: inline-flex;
-          background: #fff7ed;
-          color: #92400e;
-          padding: 8px 12px;
-          border-radius: 999px;
-          font-weight: 800;
-          margin-bottom: 14px;
+        .section-kicker {
+          color: #d97706;
+          font-weight: 900;
+          text-transform: uppercase;
+          font-size: 0.78rem;
+          letter-spacing: 0.08em;
+          margin-bottom: 10px;
         }
 
         h1 {
-          margin: 0 0 8px;
-          font-size: 2.4rem;
-          letter-spacing: -0.04em;
+          margin: 0 0 10px;
+          font-size: clamp(2rem, 4vw, 3.2rem);
+          letter-spacing: -0.05em;
         }
 
         p {
           color: var(--muted);
+          line-height: 1.8;
           margin: 0;
-          line-height: 1.7;
         }
 
-        .loading,
-        .empty {
-          margin-top: 14px;
-          padding: 14px;
-          border-radius: 14px;
+        .state-box {
+          margin-top: 16px;
+          padding: 16px;
           background: white;
-          color: var(--muted);
           border: 1px solid rgba(226,232,240,0.85);
+          border-radius: 18px;
           box-shadow: var(--shadow);
+          color: var(--muted);
         }
 
         .booking-list {
@@ -136,6 +130,7 @@ export default function BookingsPage() {
           gap: 12px;
           align-items: center;
           flex-wrap: wrap;
+          margin-bottom: 8px;
         }
 
         .booking-title {
