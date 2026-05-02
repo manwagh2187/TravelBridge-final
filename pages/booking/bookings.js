@@ -44,14 +44,15 @@ export default function BookingsPage() {
               <div className="booking-main">
                 <div className="booking-top">
                   <div className="booking-title">Booking #{b.id}</div>
-                  <span className={`status status-${b.status}`}>{b.status}</span>
+                  <span className={`status status-${b.status || 'pending'}`}>{b.status || 'pending'}</span>
                 </div>
 
                 <div className="booking-meta">
-                  {new Date(b.startDate).toLocaleDateString()} → {new Date(b.endDate).toLocaleDateString()}
+                  {b.startDate ? new Date(b.startDate).toLocaleDateString() : ''} →{' '}
+                  {b.endDate ? new Date(b.endDate).toLocaleDateString() : ''}
                 </div>
                 <div className="booking-submeta">
-                  Room ID: {b.roomId} • {b.room?.listing?.title || 'Listing'}
+                  Room ID: {b.roomId || 'N/A'} • {b.room?.title || b.room?.listing?.title || 'Listing'}
                 </div>
               </div>
 

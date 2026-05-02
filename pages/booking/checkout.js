@@ -15,12 +15,11 @@ export default function Checkout() {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [room, setRoom] = useState(null);
-  const [listing, setListing] = useState(null);
+  const [hotel, setHotel] = useState(null);
 
   useEffect(() => {
     if (!isAuthenticated) {
       router.push('/login');
-      return;
     }
   }, [isAuthenticated, router]);
 
@@ -28,17 +27,16 @@ export default function Checkout() {
     async function load() {
       if (!roomId) return;
 
-      const res = await apiFetch('/api/listings');
-      const data = await res.json();
-      const listings = Array.isArray(data) ? data : [];
+      try {
+        const roomRes = await apiFetch(`/api/hotels/rooms/${roomId}`);
+        const roomJson = await roomRes.json();
 
-      for (const l of listings) {
-        const foundRoom = (l.rooms || []).find(r => String(r.id) === String(roomId));
-        if (foundRoom) {
-          setRoom(foundRoom);
-          setListing(l);
-          break;
+        if (roomRes.ok) {
+          setRoom(roomJson.room || roomJson);
+          setHotel(roomJson.hotel || null);
         }
+      } catch (err) {
+        console.error(err);
       }
     }
 
@@ -58,7 +56,10 @@ export default function Checkout() {
   }, [room, nights]);
 
   async function handleBook() {
-    if (!roomId) return;
+    if (!roomId || !startDate || !endDate) {
+      setMessage('Please select check-in and check-out dates.');
+      return;
+    }
 
     setLoading(true);
     setMessage('');
@@ -67,7 +68,12 @@ export default function Checkout() {
       const res = await apiFetch('/api/bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roomId: Number(roomId), startDate, endDate, guests }),
+        body: JSON.stringify({
+          roomId: Number(roomId),
+          startDate,
+          endDate,
+          guests,
+        }),
       });
 
       const booking = await res.json();
@@ -77,23 +83,10 @@ export default function Checkout() {
         return;
       }
 
-      const payRes = await apiFetch('/api/payments/create-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bookingId: booking.id }),
-      });
-
-      const payJson = await payRes.json();
-
-      if (!payRes.ok) {
-        setMessage(payJson.error || 'Failed to create payment session');
-        return;
-      }
-
-      if (payJson.url) {
-        window.location.href = payJson.url;
+      if (booking?.id) {
+        router.push('/booking/success');
       } else {
-        setMessage('Payment session missing URL');
+        setMessage('Booking created but confirmation is missing.');
       }
     } catch (err) {
       console.error(err);
@@ -115,17 +108,17 @@ export default function Checkout() {
             <div className="form-grid">
               <div className="field">
                 <label>Check-in</label>
-                <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
+                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
               </div>
 
               <div className="field">
                 <label>Check-out</label>
-                <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
+                <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
               </div>
 
               <div className="field">
                 <label>Guests</label>
-                <select value={guests} onChange={e => setGuests(Number(e.target.value))}>
+                <select value={guests} onChange={(e) => setGuests(Number(e.target.value))}>
                   <option value={1}>1 guest</option>
                   <option value={2}>2 guests</option>
                   <option value={3}>3 guests</option>
@@ -146,24 +139,28 @@ export default function Checkout() {
             {message ? <div className="message">{message}</div> : null}
 
             <div className="back-link">
-              <Link href={`/listing/${listing?.id || ''}`}>Back to listing</Link>
+              <Link href={`/listing/${hotel?.id || ''}`}>Back to listing</Link>
             </div>
           </section>
 
           <aside className="summary-card">
             <div className="summary-badge">Your booking summary</div>
 
-            {listing ? (
+            {hotel ? (
               <>
-                <div className="summary-title">{listing.title}</div>
-                <div className="summary-location">{listing.city}, {listing.country}</div>
+                <div className="summary-title">{hotel.title}</div>
+                <div className="summary-location">
+                  {hotel.city}, {hotel.country}
+                </div>
               </>
             ) : null}
 
             {room ? (
               <>
                 <div className="summary-room">{room.title}</div>
-                <div className="summary-meta">{room.capacity} guests • {room.inventory} available</div>
+                <div className="summary-meta">
+                  {room.capacity} guests • {room.inventory} available
+                </div>
 
                 <div className="price-row">
                   <span>Nightly rate</span>

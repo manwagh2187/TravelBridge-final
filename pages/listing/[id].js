@@ -1,43 +1,48 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import useSWR from 'swr';
 import Link from 'next/link';
+import useSWR from 'swr';
 import { apiFetch } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 
-const fetcher = (url) => apiFetch(url).then(r => r.json());
+const fetcher = (url) => apiFetch(url).then((r) => r.json());
 
 export default function ListingPage() {
   const router = useRouter();
   const { id, checkIn, checkOut, guests, destination } = router.query;
   const { isAuthenticated } = useAuth();
+
   const [activeImage, setActiveImage] = useState(0);
   const mapRef = useRef(null);
 
-  const { data } = useSWR('/api/listings', fetcher);
-  const listings = Array.isArray(data) ? data : [];
-  const listing = listings.find(x => String(x.id) === String(id));
+  const { data: hotelData } = useSWR(id ? `/api/hotels/${id}` : null, fetcher);
+  const { data: roomData } = useSWR(id ? `/api/hotels/${id}/rooms` : null, fetcher);
+
+  const hotel = hotelData || null;
+  const rooms = Array.isArray(roomData) ? roomData : [];
 
   const images = useMemo(() => {
-    if (!listing) return [];
-    if (Array.isArray(listing.images)) return listing.images;
-    if (typeof listing.images === 'string') {
+    if (!hotel) return [];
+    if (Array.isArray(hotel.images)) return hotel.images;
+    if (typeof hotel.imagesJson === 'string') {
       try {
-        return JSON.parse(listing.images) || [];
+        return JSON.parse(hotel.imagesJson) || [];
       } catch {
         return [];
       }
     }
     return [];
-  }, [listing]);
+  }, [hotel]);
 
-  const rooms = Array.isArray(listing?.rooms) ? listing.rooms : [];
+  useEffect(() => {
+    setActiveImage(0);
+  }, [id]);
 
   function handleShowMap() {
     mapRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  if (!listing) {
+  if (!hotel) {
     return <div className="container page-load">Loading...</div>;
   }
 
@@ -47,9 +52,9 @@ export default function ListingPage() {
         <div className="breadcrumb">
           <Link href="/">Home</Link>
           <span>/</span>
-          <span>{listing.city}</span>
+          <span>{hotel.city}</span>
           <span>/</span>
-          <span>{listing.title}</span>
+          <span>{hotel.title}</span>
         </div>
 
         {(checkIn || checkOut || guests || destination) ? (
@@ -64,7 +69,7 @@ export default function ListingPage() {
           <div className="gallery">
             <div className="main-image">
               {images[activeImage] ? (
-                <img src={images[activeImage]} alt={listing.title} />
+                <img src={images[activeImage]} alt={hotel.title} />
               ) : (
                 <div className="placeholder">TravelBridge</div>
               )}
@@ -88,7 +93,7 @@ export default function ListingPage() {
             <div className="sticky-badge">Great value</div>
             <h2>Book this stay</h2>
             <div className="sticky-price">
-              ₹{Number(rooms[0]?.pricePerNight || 0).toLocaleString()}
+              ₹{Number(hotel.minPrice || 0).toLocaleString()}
             </div>
             <div className="sticky-meta">per night • subject to availability</div>
 
@@ -103,7 +108,10 @@ export default function ListingPage() {
             </button>
 
             {isAuthenticated ? (
-              <Link href={`/booking/checkout?roomId=${rooms[0]?.id || ''}`} className="btn btn-primary full">
+              <Link
+                href={`/booking/checkout?roomId=${rooms[0]?.supplierRoomId || rooms[0]?.id || ''}`}
+                className="btn btn-primary full"
+              >
                 Reserve now
               </Link>
             ) : (
@@ -116,9 +124,9 @@ export default function ListingPage() {
 
         <div className="listing-header">
           <div>
-            <div className="crumb-text">{listing.city}, {listing.country}</div>
-            <h1>{listing.title}</h1>
-            <p>{listing.description}</p>
+            <div className="crumb-text">{hotel.city}, {hotel.country}</div>
+            <h1>{hotel.title}</h1>
+            <p>{hotel.description}</p>
 
             <div className="feature-row">
               <span>Free Wi-Fi</span>
@@ -129,7 +137,7 @@ export default function ListingPage() {
           </div>
 
           <div className="score-card">
-            <div className="score">8.9</div>
+            <div className="score">{hotel.starRating || '8.9'}</div>
             <div>
               <strong>Excellent</strong>
               <div>Based on guest reviews</div>
@@ -144,8 +152,8 @@ export default function ListingPage() {
               <p>Choose a room that suits your trip.</p>
             </div>
 
-            {rooms.map(room => (
-              <div className="room-card" key={room.id}>
+            {rooms.map((room) => (
+              <div className="room-card" key={room.id || room.supplierRoomId}>
                 <div className="room-main">
                   <div className="room-title">{room.title}</div>
                   <div className="room-meta">
@@ -159,10 +167,12 @@ export default function ListingPage() {
                 </div>
 
                 <div className="room-right">
-                  <div className="room-price">₹{Number(room.pricePerNight || 0).toLocaleString()}</div>
+                  <div className="room-price">
+                    ₹{Number(room.pricePerNight || 0).toLocaleString()}
+                  </div>
                   <div className="room-night">per night</div>
                   {isAuthenticated ? (
-                    <Link href={`/booking/checkout?roomId=${room.id}`} className="btn btn-primary">
+                    <Link href={`/booking/checkout?roomId=${room.id || room.supplierRoomId}`} className="btn btn-primary">
                       Select room
                     </Link>
                   ) : (
@@ -201,7 +211,7 @@ export default function ListingPage() {
           <div className="section-head">
             <div>
               <div className="section-kicker">Map view</div>
-              <h2>{listing.city} map</h2>
+              <h2>{hotel.city} map</h2>
               <p>Click on the “View on map” button to jump here.</p>
             </div>
           </div>
@@ -215,7 +225,7 @@ export default function ListingPage() {
                   We don’t have live map data for this property yet. Use the location details
                   and nearby context to plan your stay.
                 </p>
-                <div className="map-fallback-note">{listing.city}, {listing.country}</div>
+                <div className="map-fallback-note">{hotel.city}, {hotel.country}</div>
               </div>
             </div>
 
@@ -223,13 +233,13 @@ export default function ListingPage() {
               <h3>Nearby stays</h3>
               {rooms.slice(0, 3).map((room) => (
                 <button
-                  key={room.id}
+                  key={room.id || room.supplierRoomId}
                   type="button"
                   className="map-item"
                   onClick={() => setActiveImage(0)}
                 >
                   <strong>{room.title}</strong>
-                  <span>{listing.city}, {listing.country}</span>
+                  <span>{hotel.city}, {hotel.country}</span>
                 </button>
               ))}
             </aside>

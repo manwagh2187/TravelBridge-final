@@ -18,7 +18,9 @@ export default async function handler(req, res) {
   }
 
   const auth = getAuth(req);
-  if (!auth) return res.status(401).json({ error: 'Unauthorized' });
+  if (!auth) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
 
   try {
     const booking = await createBooking({
