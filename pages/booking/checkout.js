@@ -6,7 +6,7 @@ import { apiFetch } from '../../lib/api';
 
 export default function Checkout() {
   const router = useRouter();
-  const { roomId } = router.query;
+  const { roomId, hotelId } = router.query;
   const { isAuthenticated } = useAuth();
 
   const [startDate, setStartDate] = useState('');
@@ -28,22 +28,20 @@ export default function Checkout() {
       if (!roomId) return;
 
       try {
-        const roomRes = await apiFetch(`/api/hotels/${router.query.hotelId || ''}/rooms`);
-        const roomJson = await roomRes.json();
+        if (hotelId) {
+          const roomRes = await apiFetch(`/api/hotels/${hotelId}/rooms`);
+          const roomJson = await roomRes.json();
 
-        if (roomRes.ok) {
-          const roomList = Array.isArray(roomJson) ? roomJson : [];
-          const foundRoom = roomList.find(
-            (r) => String(r.id || r.supplierRoomId) === String(roomId)
-          );
+          if (roomRes.ok) {
+            const roomList = Array.isArray(roomJson) ? roomJson : [];
+            const foundRoom = roomList.find(
+              (r) => String(r.id || r.supplierRoomId) === String(roomId)
+            );
 
-          if (foundRoom) {
-            setRoom(foundRoom);
+            if (foundRoom) setRoom(foundRoom);
           }
-        }
 
-        if (router.query.hotelId) {
-          const hotelRes = await apiFetch(`/api/hotels/${router.query.hotelId}`);
+          const hotelRes = await apiFetch(`/api/hotels/${hotelId}`);
           const hotelJson = await hotelRes.json();
           if (hotelRes.ok) setHotel(hotelJson);
         }
@@ -53,7 +51,7 @@ export default function Checkout() {
     }
 
     load();
-  }, [roomId, router.query.hotelId]);
+  }, [roomId, hotelId]);
 
   const nights = useMemo(() => {
     if (!startDate || !endDate) return 0;
@@ -85,6 +83,7 @@ export default function Checkout() {
           startDate,
           endDate,
           guests,
+          hotelId: hotelId || null,
         }),
       });
 
@@ -151,7 +150,7 @@ export default function Checkout() {
             {message ? <div className="message">{message}</div> : null}
 
             <div className="back-link">
-              <Link href={`/listing/${router.query.hotelId || ''}`}>Back to listing</Link>
+              <Link href={`/listing/${hotelId || ''}`}>Back to listing</Link>
             </div>
           </section>
 
@@ -201,174 +200,6 @@ export default function Checkout() {
           </aside>
         </div>
       </div>
-
-      <style jsx>{`
-        .checkout-shell {
-          background: linear-gradient(180deg, #f5f3ef 0%, #efe8df 100%);
-          min-height: 100vh;
-          padding-bottom: 64px;
-        }
-
-        .checkout-page {
-          padding: 28px 0 0;
-        }
-
-        .checkout-grid {
-          display: grid;
-          grid-template-columns: minmax(0, 1.3fr) 420px;
-          gap: 18px;
-          align-items: start;
-        }
-
-        .checkout-main,
-        .summary-card {
-          background: white;
-          border-radius: 28px;
-          padding: 26px;
-          box-shadow: var(--shadow);
-          border: 1px solid rgba(226,232,240,0.85);
-        }
-
-        .badge,
-        .summary-badge {
-          display: inline-flex;
-          background: #fff7ed;
-          color: #92400e;
-          padding: 8px 12px;
-          border-radius: 999px;
-          font-weight: 800;
-          margin-bottom: 14px;
-        }
-
-        h1 {
-          margin: 0 0 8px;
-          font-size: 2.4rem;
-          letter-spacing: -0.04em;
-        }
-
-        p {
-          color: var(--muted);
-          margin: 0 0 22px;
-          line-height: 1.7;
-        }
-
-        .form-grid {
-          display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 14px;
-        }
-
-        .field {
-          margin-bottom: 14px;
-        }
-
-        label {
-          display: block;
-          margin-bottom: 8px;
-          font-weight: 700;
-        }
-
-        input,
-        select {
-          width: 100%;
-          padding: 14px 16px;
-          border-radius: 16px;
-          border: 1px solid var(--line);
-          outline: none;
-          background: white;
-        }
-
-        .notice {
-          margin: 18px 0;
-          background: #fff7ed;
-          border: 1px solid #fde68a;
-          border-radius: 18px;
-          padding: 14px 16px;
-          color: var(--text);
-        }
-
-        .full {
-          width: 100%;
-          margin-top: 10px;
-          padding: 14px 18px;
-        }
-
-        .message {
-          margin-top: 16px;
-          padding: 12px 14px;
-          background: #f1f5f9;
-          border-radius: 14px;
-          color: var(--text);
-        }
-
-        .back-link {
-          margin-top: 18px;
-        }
-
-        .back-link a {
-          color: #b45309;
-          font-weight: 800;
-        }
-
-        .summary-title {
-          font-weight: 900;
-          font-size: 1.4rem;
-          letter-spacing: -0.02em;
-          margin-bottom: 6px;
-        }
-
-        .summary-location,
-        .summary-meta {
-          color: var(--muted);
-          margin-top: 4px;
-        }
-
-        .summary-room {
-          margin-top: 18px;
-          font-weight: 800;
-          font-size: 1.05rem;
-        }
-
-        .price-row,
-        .total-row {
-          display: flex;
-          justify-content: space-between;
-          gap: 16px;
-          align-items: center;
-          padding: 12px 0;
-          border-bottom: 1px solid var(--line);
-        }
-
-        .total-row {
-          border-bottom: 0;
-          margin-top: 6px;
-          font-size: 1.1rem;
-        }
-
-        .total-row strong {
-          font-size: 1.4rem;
-          color: #b45309;
-        }
-
-        .summary-features {
-          margin: 18px 0 0;
-          padding-left: 18px;
-          color: var(--text);
-          line-height: 1.9;
-        }
-
-        @media (max-width: 1100px) {
-          .checkout-grid {
-            grid-template-columns: 1fr;
-          }
-        }
-
-        @media (max-width: 720px) {
-          .form-grid {
-            grid-template-columns: 1fr;
-          }
-        }
-      `}</style>
     </div>
   );
 }
