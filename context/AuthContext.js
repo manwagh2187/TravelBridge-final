@@ -1,47 +1,59 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { clearAuth, getToken, getUser, setAuth } from '../lib/auth';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [token, setTokenState] = useState(null);
-  const [user, setUserState] = useState(null);
-  const [ready, setReady] = useState(false);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setTokenState(getToken());
-    setUserState(getUser());
-    setReady(true);
+    try {
+      const raw = localStorage.getItem('travelbridge_user');
+      if (raw) {
+        setUser(JSON.parse(raw));
+      }
+    } catch {
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const login = (nextToken, nextUser) => {
-    setAuth(nextToken, nextUser);
-    setTokenState(nextToken);
-    setUserState(nextUser);
-  };
-
-  const logout = () => {
-    clearAuth();
-    setTokenState(null);
-    setUserState(null);
-  };
-
-  const value = useMemo(() => ({
-    token,
-    user,
-    ready,
-    isAuthenticated: Boolean(token),
-    login,
-    logout,
-  }), [token, user, ready]);
+  const value = useMemo(() => {
+    return {
+      user,
+      loading,
+      isAuthenticated: !!user,
+      login: (nextUser) => {
+        setUser(nextUser);
+        try {
+          localStorage.setItem('travelbridge_user', JSON.stringify(nextUser));
+        } catch {}
+      },
+      logout: () => {
+        setUser(null);
+        try {
+          localStorage.removeItem('travelbridge_user');
+        } catch {}
+      },
+    };
+  }, [user, loading]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
-  const ctx = useContext(AuthContext);
-  if (!ctx) {
-    throw new Error('useAuth must be used within AuthProvider');
+  const context = useContext(AuthContext);
+
+  if (!context) {
+    return {
+      user: null,
+      loading: true,
+      isAuthenticated: false,
+      login: () => {},
+      logout: () => {},
+    };
   }
-  return ctx;
+
+  return context;
 }
