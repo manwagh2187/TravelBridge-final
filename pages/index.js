@@ -36,6 +36,7 @@ export default function Home() {
 
   const { data } = useSWR(`/api/hotels?country=India&city=${encodeURIComponent(destination)}`, fetcher);
   const listings = Array.isArray(data) ? data : [];
+  const popularFallbackCities = DESTINATIONS.filter((city) => city !== destination).slice(0, 4);
 
   const sortedListings = useMemo(() => {
     const arr = [...listings];
@@ -304,13 +305,27 @@ export default function Home() {
           <div className="empty-state">
             <div className="empty-icon">🏨</div>
             <h3>No stays found in {destination}</h3>
-            <p>Try another city or browse our popular destinations below.</p>
+            <p>Try another city or explore a popular destination below.</p>
+
             <div className="empty-actions">
               {DESTINATIONS.map((city) => (
                 <button key={city} className="chip" type="button" onClick={() => setDestination(city)}>
                   {city}
                 </button>
               ))}
+            </div>
+
+            <div className="empty-divider" />
+
+            <div className="empty-suggestions">
+              <div className="empty-suggestions-label">Popular nearby options</div>
+              <div className="empty-suggestion-row">
+                {popularFallbackCities.map((city) => (
+                  <button key={city} type="button" className="suggestion-pill" onClick={() => setDestination(city)}>
+                    {city}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         ) : null}
@@ -328,13 +343,25 @@ export default function Home() {
         <div className="map-layout">
           <div className="map-panel">
             <div className="map-fallback">
-              <div className="map-fallback-icon">📍</div>
-              <div className="map-fallback-title">Map preview unavailable</div>
+              <div className="map-fallback-header">
+                <div className="map-fallback-icon">📍</div>
+                <div>
+                  <div className="map-fallback-title">Interactive map preview unavailable</div>
+                  <div className="map-fallback-subtitle">
+                    We’ll show live location data here soon.
+                  </div>
+                </div>
+              </div>
+
               <div className="map-canvas-placeholder">
                 <div className="map-pin">●</div>
                 <div className="map-text">{destination}</div>
               </div>
-              <p>No live map data is available right now. Please use the nearby stays list below.</p>
+
+              <p>
+                No live map data is available right now. Use the nearby stays list or browse another destination.
+              </p>
+
               <div className="map-fallback-note">{destination}</div>
             </div>
           </div>
