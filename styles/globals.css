@@ -7,6 +7,27 @@
   --primary: #d97706;
   --shadow: 0 16px 40px rgba(120, 86, 32, 0.12);
 }
+.rate-list {
+  display: grid;
+  gap: 12px;
+  margin: 16px 0 24px;
+}
+
+.rate-item {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: white;
+  cursor: pointer;
+}
+
+.rate-item.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.12);
+}
 .search-panel {
   display: grid;
   grid-template-columns: 1.5fr 1fr 1fr 0.8fr auto;

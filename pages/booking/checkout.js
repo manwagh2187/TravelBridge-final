@@ -3,7 +3,7 @@ import { useState } from 'react';
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { id, checkIn, checkOut, guests, destination } = router.query;
+  const { hotelId, checkIn, checkOut, guests, destination, rateKey } = router.query;
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -21,22 +21,30 @@ export default function CheckoutPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          hotelId: id,
+          hotelId,
           checkIn,
           checkOut,
           guests: Number(guests || 2),
-          traveler: { firstName, lastName, email, phone },
+          rateKey,
+          traveler: {
+            firstName,
+            lastName,
+            email,
+            phone,
+          },
         }),
       });
 
       const data = await res.json();
 
-      if (!res.ok) throw new Error(data.error || 'Booking failed');
+      if (!res.ok) {
+        throw new Error(data.error || 'Booking failed');
+      }
 
       router.push({
         pathname: '/booking/success',
         query: {
-          reference: data?.bookingReference || data?.reference || 'confirmed',
+          reference: data?.booking?.reference || data?.reference || data?.bookingReference || 'confirmed',
           destination,
         },
       });

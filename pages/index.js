@@ -2,7 +2,28 @@ import { useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
 import HotelCard from '../components/HotelCard';
 
-const DESTINATIONS = ['Mumbai', 'Delhi', 'Bengaluru', 'Chennai', 'Hyderabad', 'Kolkata', 'Goa', 'Jaipur'];
+const DESTINATIONS = [
+  'Mumbai',
+  'Delhi',
+  'Bengaluru',
+  'Chennai',
+  'Hyderabad',
+  'Kolkata',
+  'Goa',
+  'Jaipur',
+];
+
+const DESTINATION_CODES = {
+  Mumbai: 'MUM',
+  Delhi: 'DEL',
+  Bengaluru: 'BLR',
+  Chennai: 'MAA',
+  Hyderabad: 'HYD',
+  Kolkata: 'CCU',
+  Goa: 'GOI',
+  Jaipur: 'JAI',
+};
+
 const today = new Date().toISOString().split('T')[0];
 
 const postFetcher = (url, body) =>
@@ -14,6 +35,7 @@ const postFetcher = (url, body) =>
 
 export default function Home() {
   const resultsRef = useRef(null);
+
   const [destination, setDestination] = useState('Mumbai');
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
@@ -36,13 +58,19 @@ export default function Home() {
     ([url, body]) => postFetcher(url, body)
   );
 
-  const hotels = data?.hotels || data?.data || data?.results || [];
+  const hotels = Array.isArray(data?.results) ? data.results : [];
 
   function handleSearch() {
     setError('');
 
-    if (!destination || !checkIn || !checkOut) {
-      setError('Please fill destination, check-in, and check-out.');
+    const destinationCode = DESTINATION_CODES[destination];
+    if (!destinationCode) {
+      setError('Unsupported destination. Please choose a supported city.');
+      return;
+    }
+
+    if (!checkIn || !checkOut) {
+      setError('Please select check-in and check-out dates.');
       return;
     }
 
@@ -64,8 +92,10 @@ export default function Home() {
         },
       ],
       destination: {
-        name: destination,
+        code: destinationCode,
       },
+      currency: 'INR',
+      language: 'en',
     });
 
     resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -78,7 +108,9 @@ export default function Home() {
           <div className="hero-copy">
             <div className="hero-eyebrow">Travel smarter, stay better</div>
             <h1>Find your perfect stay in India</h1>
-            <p>Compare stays, explore deals, and book your next hotel with a cleaner, faster, and more premium experience.</p>
+            <p>
+              Search availability, verify live rates, and continue booking with a clean Hotelbeds flow.
+            </p>
 
             <div className="trust-strip">
               <div><strong>4.8/5</strong><span>Guest rating</span></div>
@@ -91,14 +123,17 @@ export default function Home() {
                 <label>Destination</label>
                 <input value={destination} onChange={(e) => setDestination(e.target.value)} />
               </div>
+
               <div className="search-field">
                 <label>Check-in</label>
                 <input type="date" min={today} value={checkIn} onChange={(e) => setCheckIn(e.target.value)} />
               </div>
+
               <div className="search-field">
                 <label>Check-out</label>
                 <input type="date" min={checkIn || today} value={checkOut} onChange={(e) => setCheckOut(e.target.value)} />
               </div>
+
               <div className="search-field">
                 <label>Guests</label>
                 <select value={guests} onChange={(e) => setGuests(Number(e.target.value))}>
@@ -109,6 +144,7 @@ export default function Home() {
                   <option value={5}>5</option>
                 </select>
               </div>
+
               <button className="btn btn-primary search-btn" type="button" onClick={handleSearch}>
                 Search
               </button>
@@ -118,7 +154,12 @@ export default function Home() {
 
             <div className="chips">
               {DESTINATIONS.map((d) => (
-                <button key={d} type="button" className={`chip ${d === destination ? 'active' : ''}`} onClick={() => setDestination(d)}>
+                <button
+                  key={d}
+                  type="button"
+                  className={`chip ${d === destination ? 'active' : ''}`}
+                  onClick={() => setDestination(d)}
+                >
                   {d}
                 </button>
               ))}
@@ -129,13 +170,18 @@ export default function Home() {
             <div className="hero-card-badge">Best deals today</div>
             <h3>Save more when you book early</h3>
             <p>Trending destinations, curated stays, and a smooth booking flow.</p>
+
             <div className="hero-visual">
-              <img src="https://images.unsplash.com/photo-1529253355930-ddbe423a2ac7?auto=format&fit=crop&w=1200&q=80" alt="Mumbai" />
+              <img
+                src="https://images.unsplash.com/photo-1529253355930-ddbe423a2ac7?auto=format&fit=crop&w=1200&q=80"
+                alt="Mumbai"
+              />
               <div className="hero-visual-overlay">
                 <div className="overlay-title">Mumbai</div>
                 <div className="overlay-subtitle">Popular stays and curated deals</div>
               </div>
             </div>
+
             <div className="hero-stats">
               <div><strong>4.8/5</strong><span>Guest rating</span></div>
               <div><strong>24/7</strong><span>Support</span></div>
@@ -150,7 +196,7 @@ export default function Home() {
           <div>
             <div className="section-kicker">Explore</div>
             <h2>Stays in {destination}</h2>
-            <p>Modern hotel cards, room details, and booking flow.</p>
+            <p>Availability results from Hotelbeds.</p>
           </div>
         </div>
 

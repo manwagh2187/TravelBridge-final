@@ -10,6 +10,7 @@ export default async function handler(req, res) {
     const data = await hbGetBooking(reference);
     return res.status(200).json(data);
   } catch (error) {
+    console.error('Booking details API failed:', error);
     return res.status(500).json({ error: error.message });
   }
 }
