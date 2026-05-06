@@ -1,92 +1,22 @@
-import Link from 'next/link';
+import { useRouter } from 'next/router';
 
 export default function SuccessPage() {
-  return (
-    <div className="result-shell">
-      <div className="container result-page">
-        <div className="result-card">
-          <div className="result-icon success">✓</div>
-          <div className="result-badge">Booking successful</div>
-          <h1>Booking completed</h1>
-          <p>Your reservation has been created successfully.</p>
+  const router = useRouter();
+  const { reference, destination } = router.query;
 
-          <div className="action-row">
-            <Link href="/booking/bookings" className="btn btn-primary">
-              View bookings
-            </Link>
-            <Link href="/" className="btn btn-outline">
-              Back to home
-            </Link>
-          </div>
-        </div>
+  return (
+    <div className="container section">
+      <h1>Booking confirmed</h1>
+      <p>Your booking has been successfully created.</p>
+
+      <div className="info-card">
+        <p><strong>Reference:</strong> {reference}</p>
+        <p><strong>Destination:</strong> {destination}</p>
       </div>
 
-      <style jsx>{`
-        .result-shell {
-          min-height: 100vh;
-          background: linear-gradient(180deg, #f5f1eb 0%, #efe8df 100%);
-          display: grid;
-          place-items: center;
-          padding: 40px 0;
-        }
-
-        .result-card {
-          width: min(720px, 100%);
-          margin: 0 auto;
-          background: white;
-          border-radius: 32px;
-          padding: 36px;
-          box-shadow: var(--shadow);
-          border: 1px solid rgba(226,232,240,0.85);
-          text-align: center;
-        }
-
-        .result-icon {
-          width: 72px;
-          height: 72px;
-          border-radius: 22px;
-          display: grid;
-          place-items: center;
-          font-size: 2.2rem;
-          font-weight: 900;
-          margin: 0 auto 18px;
-        }
-
-        .result-icon.success {
-          background: #dcfce7;
-          color: #166534;
-        }
-
-        .result-badge {
-          display: inline-flex;
-          background: #fff7ed;
-          color: #92400e;
-          padding: 8px 12px;
-          border-radius: 999px;
-          font-weight: 800;
-          margin-bottom: 14px;
-        }
-
-        h1 {
-          margin: 0 0 10px;
-          font-size: clamp(2rem, 4vw, 3rem);
-          letter-spacing: -0.05em;
-        }
-
-        p {
-          color: var(--muted);
-          margin: 0 auto 24px;
-          max-width: 56ch;
-          line-height: 1.8;
-        }
-
-        .action-row {
-          display: flex;
-          justify-content: center;
-          gap: 12px;
-          flex-wrap: wrap;
-        }
-      `}</style>
+      <button className="btn btn-outline" onClick={() => router.push('/')}>
+        Back to home
+      </button>
     </div>
   );
 }
