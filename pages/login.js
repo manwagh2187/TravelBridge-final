@@ -27,7 +27,7 @@ export default function LoginPage() {
       return;
     }
 
-    login(data.token, data.user);
+    login(data.user);
     router.push('/');
   }
 
@@ -46,10 +46,20 @@ export default function LoginPage() {
           <h2>Login</h2>
 
           <label>Email</label>
-          <input value={email} onChange={e => setEmail(e.target.value)} type="email" placeholder="you@example.com" />
+          <input
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            type="email"
+            placeholder="you@example.com"
+          />
 
           <label>Password</label>
-          <input value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="••••••••" />
+          <input
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            type="password"
+            placeholder="••••••••"
+          />
 
           {error ? <div className="error">{error}</div> : null}
 
@@ -111,7 +121,7 @@ export default function LoginPage() {
           border-radius: 30px;
           padding: 30px;
           box-shadow: var(--shadow);
-          border: 1px solid rgba(226,232,240,0.85);
+          border: 1px solid rgba(226, 232, 240, 0.85);
         }
 
         .auth-card h2 {

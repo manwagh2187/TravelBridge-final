@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
+import { useRouter } from 'next/router';
+import { useAuth } from '../context/AuthContext';
 import HotelCard from '../components/HotelCard';
 
 const DESTINATIONS = [
@@ -45,11 +47,14 @@ function toNumber(value) {
 }
 
 export default function Home() {
+  const router = useRouter();
+  const { isAuthenticated, loading } = useAuth();
   const resultsRef = useRef(null);
 
-  const [destination, setDestination] = useState('Mumbai');
-  const [checkIn, setCheckIn] = useState('');
-  const [checkOut, setCheckOut] = useState('');
+  const [destination, setDestination] = useState('Delhi');
+  const [destinationOpen, setDestinationOpen] = useState(false);
+  const [checkIn, setCheckIn] = useState('2026-05-07');
+  const [checkOut, setCheckOut] = useState('2026-05-08');
   const [guests, setGuests] = useState(2);
   const [searchBody, setSearchBody] = useState(null);
   const [error, setError] = useState('');
@@ -58,6 +63,8 @@ export default function Home() {
   const [maxPrice, setMaxPrice] = useState('');
   const [selectedHotel, setSelectedHotel] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [textSearch, setTextSearch] = useState('');
+  const [mapPopupOpen, setMapPopupOpen] = useState(false);
 
   const query = useMemo(
     () => ({
@@ -81,6 +88,15 @@ export default function Home() {
 
   const filteredHotels = useMemo(() => {
     let list = [...hotels];
+
+    if (textSearch.trim()) {
+      const q = textSearch.toLowerCase();
+      list = list.filter((hotel) =>
+        String(hotel?.name || '').toLowerCase().includes(q) ||
+        String(hotel?.destinationName || '').toLowerCase().includes(q) ||
+        String(hotel?.zoneName || '').toLowerCase().includes(q)
+      );
+    }
 
     if (minRating) {
       list = list.filter((hotel) => parseStars(hotel?.categoryName) >= minRating);
@@ -107,7 +123,7 @@ export default function Home() {
     }
 
     return list;
-  }, [hotels, minRating, maxPrice, sortBy]);
+  }, [hotels, textSearch, minRating, maxPrice, sortBy]);
 
   const bestDealHotel = useMemo(() => {
     if (!filteredHotels.length) return null;
@@ -128,8 +144,15 @@ export default function Home() {
   const displayedHotels = filteredHotels;
   const totalPages = Math.max(1, Math.ceil(displayedHotels.length / PAGE_SIZE));
   const pagedHotels = displayedHotels.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
-
   const noResults = Boolean(searchBody) && !isLoading && displayedHotels.length === 0 && !apiError;
+  const featuredHotel = bestDealHotel || topRatedHotel;
+  const mapLabel = selectedHotel?.name || featuredHotel?.name || destination;
+
+  const destinationSuggestions = useMemo(() => {
+    const q = destination.trim().toLowerCase();
+    if (!q) return DESTINATIONS;
+    return DESTINATIONS.filter((city) => city.toLowerCase().includes(q));
+  }, [destination]);
 
   useEffect(() => {
     if (bestDealHotel && !selectedHotel) {
@@ -137,11 +160,23 @@ export default function Home() {
     }
   }, [bestDealHotel, selectedHotel]);
 
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
   function handleSearch() {
+    if (!loading && !isAuthenticated) {
+      router.push('/login?next=/');
+      return;
+    }
+
     setError('');
     setSortBy('best');
     setMinRating(0);
     setMaxPrice('');
+    setTextSearch('');
     setSelectedHotel(null);
     setCurrentPage(1);
 
@@ -162,273 +197,316 @@ export default function Home() {
     }
 
     setSearchBody({
-      stay: {
-        checkIn,
-        checkOut,
-      },
-      occupancies: [
-        {
-          rooms: 1,
-          adults: guests,
-          children: 0,
-        },
-      ],
-      destination: {
-        code: destinationCode,
-      },
+      stay: { checkIn, checkOut },
+      occupancies: [{ rooms: 1, adults: guests, children: 0 }],
+      destination: { code: destinationCode },
       currency: 'INR',
     });
 
     resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  const featuredHotel = bestDealHotel || topRatedHotel;
-
   return (
-    <div className="home-page">
-      <section className="hero">
-        <div className="container hero-grid">
-          <div className="left-stack">
-            <div className="hero-copy">
-              <div className="hero-eyebrow">Travel smarter, stay better</div>
-              <h1>Find your perfect stay in India</h1>
-              <p>
-                Search availability, compare prices, filter by rating, and explore stays with a cleaner Hotelbeds flow.
-              </p>
+    <div className="tb-page">
+      <section className="tb-hero">
+        <div className="container">
+          <div className="tb-hero-title">
+            <h1>Find your next stay</h1>
+            <p>Search deals on hotels and homes with a clean, fast booking experience.</p>
+          </div>
 
-              <div className="trust-strip">
-                <div><strong>4.8/5</strong><span>Guest rating</span></div>
-                <div><strong>500+</strong><span>Verified stays</span></div>
-                <div><strong>24/7</strong><span>Support</span></div>
+          <div className="tb-search-shell">
+            <div className="tb-search-grid">
+              <div className="tb-search-field destination-field">
+                <label>Destination</label>
+                <input
+                  value={destination}
+                  onChange={(e) => {
+                    setDestination(e.target.value);
+                    setDestinationOpen(true);
+                  }}
+                  onFocus={() => setDestinationOpen(true)}
+                  onBlur={() => setTimeout(() => setDestinationOpen(false), 150)}
+                />
+                {destinationOpen ? (
+                  <div className="city-suggestions">
+                    {destinationSuggestions.map((city) => (
+                      <button
+                        key={city}
+                        type="button"
+                        className="city-suggestion"
+                        onClick={() => {
+                          setDestination(city);
+                          setDestinationOpen(false);
+                        }}
+                      >
+                        {city}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
               </div>
 
-              <div className="search-panel">
-                <div className="search-field">
-                  <label>Destination</label>
-                  <input value={destination} onChange={(e) => setDestination(e.target.value)} />
-                </div>
-
-                <div className="search-field">
-                  <label>Check-in</label>
-                  <input
-                    type="date"
-                    min={today}
-                    value={checkIn}
-                    onChange={(e) => setCheckIn(e.target.value)}
-                  />
-                </div>
-
-                <div className="search-field">
-                  <label>Check-out</label>
-                  <input
-                    type="date"
-                    min={checkIn || today}
-                    value={checkOut}
-                    onChange={(e) => setCheckOut(e.target.value)}
-                  />
-                </div>
-
-                <div className="search-field">
-                  <label>Guests</label>
-                  <select value={guests} onChange={(e) => setGuests(Number(e.target.value))}>
-                    <option value={1}>1</option>
-                    <option value={2}>2</option>
-                    <option value={3}>3</option>
-                    <option value={4}>4</option>
-                    <option value={5}>5</option>
-                  </select>
-                </div>
-
-                <button className="btn btn-primary search-btn" type="button" onClick={handleSearch}>
-                  Search
-                </button>
+              <div className="tb-search-field">
+                <label>Check-in</label>
+                <input type="date" min={today} value={checkIn} onChange={(e) => setCheckIn(e.target.value)} />
               </div>
 
-              {error ? <div className="search-error">{error}</div> : null}
+              <div className="tb-search-field">
+                <label>Check-out</label>
+                <input
+                  type="date"
+                  min={checkIn || today}
+                  value={checkOut}
+                  onChange={(e) => setCheckOut(e.target.value)}
+                />
+              </div>
 
-              <div className="chips">
-                {DESTINATIONS.map((d) => (
-                  <button
-                    key={d}
-                    type="button"
-                    className={`chip ${d === destination ? 'active' : ''}`}
-                    onClick={() => setDestination(d)}
-                  >
-                    {d}
-                  </button>
+              <div className="tb-search-field">
+                <label>Guests</label>
+                <select value={guests} onChange={(e) => setGuests(Number(e.target.value))}>
+                  <option value={1}>1</option>
+                  <option value={2}>2</option>
+                  <option value={3}>3</option>
+                  <option value={4}>4</option>
+                  <option value={5}>5</option>
+                </select>
+              </div>
+
+              <button className="btn btn-primary tb-search-btn" type="button" onClick={handleSearch}>
+                Search
+              </button>
+            </div>
+          </div>
+
+          <div className="tb-offers">
+            <div className="tb-offers-head">
+              <h2>Exclusive Offers</h2>
+            </div>
+
+            <div className="tb-offers-strip">
+              <div className="tb-offer-card blue">
+                <strong>Huge discounts on bookings</strong>
+                <span>Use code: TRAVEL</span>
+              </div>
+              <div className="tb-offer-card indigo">
+                <strong>No convenience fee</strong>
+                <span>Save more on every booking</span>
+              </div>
+              <div className="tb-offer-card sky">
+                <strong>Best hotel deals</strong>
+                <span>Bundle and save</span>
+              </div>
+            </div>
+          </div>
+
+          {error ? <div className="search-error">{error}</div> : null}
+        </div>
+      </section>
+
+      <section className="tb-promo">
+        <div className="container tb-promo-inner">
+          <strong>Looking for instant coupons?</strong>
+          <span>Check out today&apos;s discounts and destination offers</span>
+        </div>
+      </section>
+
+      <main className="container tb-main" ref={resultsRef}>
+        <aside className="tb-sidebar">
+          <div className="side-card map-card">
+            <div className="side-card-title">Search on map</div>
+            <button type="button" className="map-mini-box" onClick={() => setMapPopupOpen(true)}>
+              <div className="map-pin">📍</div>
+              <div className="map-text">{destination}</div>
+            </button>
+          </div>
+
+          <div className="side-card">
+            <input
+              className="sidebar-search"
+              type="text"
+              placeholder="Text search"
+              value={textSearch}
+              onChange={(e) => {
+                setTextSearch(e.target.value);
+                setCurrentPage(1);
+              }}
+            />
+          </div>
+
+          <div className="side-card">
+            <div className="side-title">Your budget (per night)</div>
+            <input
+              className="range"
+              type="range"
+              min="0"
+              max="15000"
+              step="100"
+              value={maxPrice === '' ? 15000 : maxPrice}
+              onChange={(e) => {
+                setMaxPrice(e.target.value);
+                setCurrentPage(1);
+              }}
+            />
+            <div className="minmax-row">
+              <input
+                type="number"
+                min="0"
+                placeholder="Max price"
+                value={maxPrice}
+                onChange={(e) => {
+                  setMaxPrice(e.target.value);
+                  setCurrentPage(1);
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="side-card">
+            <div className="side-title">Popular filters</div>
+            <label><input type="checkbox" /> 3+ stars</label>
+            <label><input type="checkbox" /> 4+ stars</label>
+            <label><input type="checkbox" /> Best deals</label>
+          </div>
+
+          <div className="side-card">
+            <div className="side-title">Best deal</div>
+            {featuredHotel ? (
+              <div className="mini-deal">
+                <strong>{featuredHotel.name}</strong>
+                <span>{featuredHotel.destinationName || featuredHotel.zoneName || destination}</span>
+                <div className="mini-price">INR {featuredHotel.price}</div>
+              </div>
+            ) : (
+              <p className="muted">Search to see best deals.</p>
+            )}
+          </div>
+        </aside>
+
+        <section className="tb-results">
+          <div className="tb-results-head">
+            <h2>{total} properties in {destination}</h2>
+            <select
+              className="sort-select"
+              value={sortBy}
+              onChange={(e) => {
+                setSortBy(e.target.value);
+                setCurrentPage(1);
+              }}
+            >
+              <option value="best">Best match</option>
+              <option value="price-asc">Price low to high</option>
+              <option value="price-desc">Price high to low</option>
+              <option value="rating">Top rating</option>
+            </select>
+          </div>
+
+          <div className="results-toolbar">
+            <span className="toolbar-pill">All properties</span>
+            <span className="toolbar-pill">Hotels</span>
+            <span className="toolbar-pill">Deals</span>
+          </div>
+
+          {searchBody && isLoading ? <p>Loading hotels...</p> : null}
+
+          {apiError ? (
+            <div className="search-error">
+              {quotaExceeded
+                ? 'Hotelbeds quota exceeded. Please try again later or contact support.'
+                : apiError}
+            </div>
+          ) : null}
+
+          {!apiError ? (
+            <>
+              <div className="hotel-list">
+                {pagedHotels.map((hotel) => (
+                  <HotelCard
+                    key={hotel.id || hotel.code}
+                    hotel={hotel}
+                    query={query}
+                    selected={selectedHotel?.id === hotel?.id}
+                    onSelect={() => setSelectedHotel(hotel)}
+                  />
                 ))}
               </div>
-            </div>
 
-            <div className="hero-card">
-              <div className="hero-card-badge">Best deals today</div>
-
-              {featuredHotel ? (
-                <>
-                  <div className="hero-badges">
-                    <span className="hero-badge">Top deal</span>
-                    {topRatedHotel ? <span className="hero-badge hero-badge-soft">Top rated</span> : null}
+              {displayedHotels.length > PAGE_SIZE ? (
+                <div className="pagination">
+                  <button
+                    className="btn btn-outline"
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    Prev
+                  </button>
+                  <div className="pagination-info">
+                    Page {currentPage} of {totalPages}
                   </div>
+                  <button
+                    className="btn btn-outline"
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                  </button>
+                </div>
+              ) : null}
+            </>
+          ) : null}
 
-                  <h3>{featuredHotel.name}</h3>
-                  <p>{featuredHotel.destinationName || featuredHotel.zoneName || 'Best deal from your current search results'}</p>
-                </>
-              ) : (
-                <>
-                  <h3>Save more when you book early</h3>
-                  <p>Trending destinations, curated stays, and a smooth booking flow.</p>
-                </>
-              )}
+          {noResults ? (
+            <div className="empty-state">
+              <div className="empty-icon">🏨</div>
+              <h3>No hotels available for {destination}</h3>
+              <p>Try different dates or another destination.</p>
+            </div>
+          ) : null}
+        </section>
+      </main>
 
-              <div
-                className="hero-visual"
-                onClick={() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-                style={{ cursor: 'pointer' }}
-              >
-                <img
-                  src="https://images.unsplash.com/photo-1529253355930-ddbe423a2ac7?auto=format&fit=crop&w=1200&q=80"
-                  alt="Travel destination"
-                />
-                <div className="hero-visual-overlay">
-                  <div className="overlay-title">{destination}</div>
-                  <div className="overlay-subtitle">
-                    {featuredHotel ? `Best deal from INR ${featuredHotel.price}` : 'Popular stays and curated deals'}
-                  </div>
-                </div>
-              </div>
+      {mapPopupOpen ? (
+        <div className="map-modal-backdrop" onClick={() => setMapPopupOpen(false)}>
+          <div className="map-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="map-modal-close" type="button" onClick={() => setMapPopupOpen(false)}>
+              ×
+            </button>
 
-              <div className="hero-stats">
-                <div>
-                  <strong>{featuredHotel?.price ? `INR ${featuredHotel.price}` : 'Best deal'}</strong>
-                  <span>Featured price</span>
-                </div>
-                <div>
-                  <strong>{featuredHotel?.categoryName || 'Top rated'}</strong>
-                  <span>Featured stay</span>
-                </div>
-                <div>
-                  <strong>{total || '—'}</strong>
-                  <span>Search results</span>
-                </div>
-              </div>
+            <div className="map-modal-header">
+              <h3>Search on map: {destination}</h3>
+              <p>{displayedHotels.length} hotels available in this search</p>
             </div>
 
-            <div className="map-card-mini">
-              <div className="section-kicker">Map</div>
-              <h3>Explore {destination}</h3>
-              <p>See the current destination and nearby highlighted stays.</p>
-              <div className="map-mini-box">
-                <div className="map-pin">●</div>
-                <div className="map-text">{destination}</div>
+            <div className="map-modal-content">
+              <div className="map-modal-map">
+                <div className="map-canvas-placeholder">
+                  <div className="map-pin">📍</div>
+                  <div className="map-text">{destination}</div>
+                </div>
               </div>
-              <div className="map-fallback-note">
-                {selectedHotel?.name || featuredHotel?.name || 'Select a hotel to highlight it here'}
+
+              <div className="map-modal-results">
+                {displayedHotels.length ? (
+                  displayedHotels.map((hotel) => (
+                    <button
+                      key={hotel.id || hotel.code}
+                      type="button"
+                      className="map-item"
+                      onClick={() => setSelectedHotel(hotel)}
+                    >
+                      <strong>{hotel.name}</strong>
+                      <span>{hotel.destinationName || hotel.zoneName || destination}</span>
+                      <span className="mini-price">INR {hotel.price || hotel.bestRate?.net || ''}</span>
+                    </button>
+                  ))
+                ) : (
+                  <div className="map-empty">No hotel results yet. Search first to load hotels.</div>
+                )}
               </div>
             </div>
           </div>
         </div>
-      </section>
-
-      <section className="container section" ref={resultsRef}>
-        <div className="section-head">
-          <div>
-            <div className="section-kicker">Explore</div>
-            <h2>Stays in {destination}</h2>
-            <p>Availability results from Hotelbeds.</p>
-          </div>
-
-          <div className="results-actions">
-            {searchBody ? (
-              <div className="result-count">
-                {displayedHotels.length} result{displayedHotels.length === 1 ? '' : 's'}
-              </div>
-            ) : null}
-          </div>
-        </div>
-
-        <div className="filters-bar">
-          <select value={sortBy} onChange={(e) => { setSortBy(e.target.value); setCurrentPage(1); }} className="filter-select">
-            <option value="best">Best match</option>
-            <option value="price-asc">Price low to high</option>
-            <option value="price-desc">Price high to low</option>
-            <option value="rating">Top rating</option>
-          </select>
-
-          <select value={minRating} onChange={(e) => { setMinRating(Number(e.target.value)); setCurrentPage(1); }} className="filter-select">
-            <option value={0}>Any rating</option>
-            <option value={3}>3 stars+</option>
-            <option value={4}>4 stars+</option>
-            <option value={5}>5 stars</option>
-          </select>
-
-          <input
-            type="number"
-            min="0"
-            placeholder="Max price"
-            value={maxPrice}
-            onChange={(e) => { setMaxPrice(e.target.value); setCurrentPage(1); }}
-            className="filter-input"
-          />
-        </div>
-
-        {searchBody && isLoading ? <p>Loading hotels...</p> : null}
-
-        {apiError ? (
-          <div className="search-error">
-            {quotaExceeded
-              ? 'Hotelbeds quota exceeded. Please try again later or contact support.'
-              : apiError}
-          </div>
-        ) : null}
-
-        {!apiError ? (
-          <>
-            <div className="hotel-grid">
-              {pagedHotels.map((hotel) => (
-                <div
-                  key={hotel.id || hotel.code}
-                  className={`hotel-wrap ${selectedHotel?.id === hotel?.id ? 'selected-hotel' : ''}`}
-                  onClick={() => setSelectedHotel(hotel)}
-                >
-                  <HotelCard hotel={hotel} query={query} selected={selectedHotel?.id === hotel?.id} />
-                </div>
-              ))}
-            </div>
-
-            {displayedHotels.length > PAGE_SIZE ? (
-              <div className="pagination">
-                <button
-                  className="btn btn-outline"
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                >
-                  Prev
-                </button>
-
-                <div className="pagination-info">
-                  Page {currentPage} of {totalPages}
-                </div>
-
-                <button
-                  className="btn btn-outline"
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                >
-                  Next
-                </button>
-              </div>
-            ) : null}
-          </>
-        ) : null}
-
-        {noResults ? (
-          <div className="empty-state">
-            <div className="empty-icon">🏨</div>
-            <h3>No hotels available for {destination}</h3>
-            <p>Try different dates or another destination.</p>
-          </div>
-        ) : null}
-      </section>
+      ) : null}
     </div>
   );
 }

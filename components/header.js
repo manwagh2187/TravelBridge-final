@@ -18,32 +18,31 @@ export default function Header() {
         ? user.email
         : 'User';
 
-  const isActive = (path) => router.pathname === path;
-
   return (
-    <header className="topbar">
-      <div className="container topbar-inner">
-        <Link href="/" className="brand">
-          TravelBridge
-        </Link>
+    <header className="em-header">
+      <div className="container em-header-inner">
+        <div className="em-brand">
+          <span className="em-brand-main">TravelBridge</span>
+          <span className="em-brand-sub">Bharat ka Travel App</span>
+        </div>
 
-        <nav className="nav">
-          <Link href="/" className={`nav-link ${isActive('/') ? 'active' : ''}`}>
-            Home
+        <nav className="em-nav">
+          <Link href="/">Hotels</Link>
+          <Link href="/">Hotels & Homes</Link>
+        </nav>
+
+        <div className="em-actions">
+          <Link href="/" className="em-link">
+            Customer Service
           </Link>
-          <Link href="/booking/bookings" className={`nav-link ${isActive('/booking/bookings') ? 'active' : ''}`}>
-            My Bookings
+          <Link href="/" className="em-link">
+            India
           </Link>
 
           {!isAuthenticated ? (
-            <>
-              <Link href="/login" className={`nav-link ${isActive('/login') ? 'active' : ''}`}>
-                Login
-              </Link>
-              <Link href="/signup" className="btn btn-primary">
-                Sign up
-              </Link>
-            </>
+            <Link href="/login" className="btn btn-primary em-login-btn">
+              Login or Signup
+            </Link>
           ) : (
             <>
               <span className="user-pill">Hi, {displayName}</span>
@@ -52,26 +51,8 @@ export default function Header() {
               </button>
             </>
           )}
-        </nav>
+        </div>
       </div>
-
-      <style jsx>{`
-        .nav-link.active {
-          color: var(--text);
-        }
-
-        @media (max-width: 720px) {
-          .topbar-inner {
-            flex-direction: column;
-            align-items: flex-start;
-            padding: 14px 0;
-          }
-
-          .nav {
-            width: 100%;
-          }
-        }
-      `}</style>
     </header>
   );
 }

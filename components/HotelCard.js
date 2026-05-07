@@ -1,42 +1,49 @@
 import Link from 'next/link';
 
-export default function HotelCard({ hotel, query, selected = false }) {
+export default function HotelCard({ hotel, query, selected = false, onSelect }) {
   const rate = hotel?.bestRate;
   const price = rate?.net || '';
   const currency = rate?.currency || hotel?.currency || 'INR';
   const initial = (hotel?.name || 'H').charAt(0).toUpperCase();
+  const stars = hotel?.categoryName || 'Hotel';
 
   return (
-    <article className={`hotel-card ${selected ? 'selected' : ''}`}>
-      <div className="hotel-thumb">
-        <div className="hotel-thumb-badge">{hotel?.categoryName || 'Hotel'}</div>
-        <div className="hotel-thumb-letter">{initial}</div>
+    <article
+      className={`tb-card ${selected ? 'selected' : ''}`}
+      onClick={onSelect}
+      role="button"
+      tabIndex={0}
+    >
+      <div className="tb-card-image">
+        <div className="tb-card-badge">{stars}</div>
+        <div className="tb-card-letter">{initial}</div>
       </div>
 
-      <div className="hotel-body">
-        <div className="hotel-topline">
-          <div>
-            <h3>{hotel?.name || 'Unnamed hotel'}</h3>
-            <p className="location">{hotel?.destinationName || hotel?.zoneName || ''}</p>
-          </div>
-          {hotel?.categoryName ? <span className="rating">{hotel.categoryName}</span> : null}
+      <div className="tb-card-body">
+        <div className="tb-card-main">
+          <h3>{hotel?.name || 'Unnamed hotel'}</h3>
+          <p className="tb-card-location">{hotel?.destinationName || hotel?.zoneName || ''}</p>
+
+          {rate ? (
+            <div className="tb-card-tags">
+              <span>{rate.roomName}</span>
+              <span>{rate.boardName}</span>
+              <span>{rate.paymentType}</span>
+            </div>
+          ) : null}
         </div>
 
-        {rate ? (
-          <div className="room-meta">
-            <span>{rate.roomName}</span>
-            <span>{rate.boardName}</span>
-            <span>{rate.paymentType}</span>
+        <div className="tb-card-side">
+          <div className="tb-rating-box">
+            <strong>{hotel?.categoryName || '4 Stars'}</strong>
+            <span>{hotel?.country || ''}</span>
           </div>
-        ) : null}
 
-        <div className="hotel-footer">
-          <div>
-            <div className="price-label">From</div>
-            <div className="price">
+          <div className="tb-price-box">
+            <div className="tb-price-label">Per night</div>
+            <div className="tb-price">
               {currency} {price}
             </div>
-            <div className="per-night">per stay</div>
           </div>
 
           <Link
@@ -55,9 +62,9 @@ export default function HotelCard({ hotel, query, selected = false }) {
                 currency,
               },
             }}
-            className="btn btn-primary"
+            className="btn btn-primary tb-card-btn"
           >
-            View details
+            View deal
           </Link>
         </div>
       </div>
