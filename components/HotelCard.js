@@ -1,70 +1,80 @@
 import Link from 'next/link';
 
 export default function HotelCard({ hotel, query, selected = false, onSelect }) {
-  const rate = hotel?.bestRate;
-  const price = hotel?.price || rate?.net || '';
-  const currency = hotel?.currency || rate?.currency || 'INR';
-  const initial = (hotel?.name || 'H').charAt(0).toUpperCase();
-  const stars = hotel?.categoryName || 'Hotel';
+  const price = Number(hotel?.net || hotel?.price || 0);
+  const currency = 'INR';
+
+  const hotelCode = hotel?.hotelCode || '';
+  const title = hotel?.hotelName || 'Unnamed hotel';
+  const location = hotel?.zoneName || hotel?.destinationName || '';
+  const roomName = hotel?.roomName || '';
+  const boardName = hotel?.boardName || '';
+  const rateType = hotel?.rateType || '';
+  const cancellationFrom = hotel?.cancellationFrom || '';
+  const cancellationAmount = hotel?.cancellationAmount || '';
+
+  const initial = (title || 'H').charAt(0).toUpperCase();
 
   return (
     <article
-      className={`tb-card ${selected ? 'selected' : ''}`}
+      className={`hotel-card ${selected ? 'selected' : ''}`}
       onClick={onSelect}
       role="button"
       tabIndex={0}
     >
-      <div className="tb-card-image">
-        <div className="tb-card-badge">{stars}</div>
-        <div className="tb-card-letter">{initial}</div>
+      <div className="hotel-thumb">
+        <div className="hotel-thumb-badge">{hotel?.categoryName || 'Hotel'}</div>
+        <div className="hotel-thumb-letter">{initial}</div>
       </div>
 
-      <div className="tb-card-body">
-        <div className="tb-card-main">
-          <h3>{hotel?.name || 'Unnamed hotel'}</h3>
-          <p className="tb-card-location">{hotel?.destinationName || hotel?.zoneName || ''}</p>
-
-          {rate ? (
-            <div className="tb-card-tags">
-              <span>{rate.roomName}</span>
-              <span>{rate.boardName}</span>
-              <span>{rate.paymentType}</span>
-            </div>
-          ) : null}
+      <div className="hotel-body">
+        <div className="hotel-topline">
+          <div>
+            <h3>{title}</h3>
+            <p className="location">{location}</p>
+          </div>
+          <span className="rating">{hotel?.categoryName || ''}</span>
         </div>
 
-        <div className="tb-card-side">
-          <div className="tb-rating-box">
-            <strong>{hotel?.categoryName || 'Hotel'}</strong>
-            <span>{hotel?.country || ''}</span>
-          </div>
+        <div className="room-meta">
+          {roomName ? <span>{roomName}</span> : null}
+          {boardName ? <span>{boardName}</span> : null}
+          {rateType ? <span>{rateType}</span> : null}
+        </div>
 
-          <div className="tb-price-box">
-            <div className="tb-price-label">Per night</div>
-            <div className="tb-price">
+        <div className="hotel-footer">
+          <div>
+            <div className="price-label">From</div>
+            <div className="price">
               {currency} {price}
             </div>
+            <div className="per-night">
+              {cancellationFrom ? `Cancel by ${cancellationFrom}` : 'per stay'}
+            </div>
+            {cancellationAmount ? (
+              <div className="per-night">Cancellation amount: {cancellationAmount}</div>
+            ) : null}
           </div>
 
           <Link
             href={{
-              pathname: `/hotel/${hotel.hotelCode || hotel.id || ''}`,
+              pathname: `/hotel/${hotelCode}`,
               query: {
                 ...query,
-                hotelCode: hotel?.hotelCode || hotel?.id || '',
-                hotelName: hotel?.name || '',
-                destinationName: hotel?.destinationName || '',
+                hotelCode,
+                hotelName: title,
+                destinationName: location,
                 categoryName: hotel?.categoryName || '',
-                roomCode: rate?.roomCode || '',
-                rateKey: rate?.rateKey || '',
-                boardName: rate?.boardName || '',
-                price: price || '',
+                roomCode: hotel?.roomCode || '',
+                rateKey: hotel?.rateKey || '',
+                boardName,
+                price,
                 currency,
               },
             }}
-            className="btn btn-primary tb-card-btn"
+            className="btn btn-primary"
           >
-            View deal
+            View details
           </Link>
         </div>
       </div>

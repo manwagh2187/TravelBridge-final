@@ -439,30 +439,30 @@ export default function Home() {
           {!apiError ? (
             <>
               <div className="hotel-list">
-                {pagedHotels.length ? (
-                  pagedHotels.map((hotel) => (
-                    <HotelCard
-                      key={hotel.id || hotel.hotelCode || hotel.name}
-                      hotel={hotel}
-                      query={query}
-                      selected={selectedHotel?.id === hotel?.id}
-                      onSelect={() => setSelectedHotel(hotel)}
-                    />
-                  ))
-                ) : searchBody ? (
-                  <div className="empty-state">
-                    <div className="empty-icon">🏨</div>
-                    <h3>No hotels found</h3>
-                    <p>Try changing dates, destination, or filters.</p>
-                  </div>
-                ) : (
-                  <div className="empty-state">
-                    <div className="empty-icon">🏨</div>
-                    <h3>Search to see hotels</h3>
-                    <p>Choose a destination and click Search.</p>
-                  </div>
-                )}
-              </div>
+				  {pagedHotels.length ? (
+				  pagedHotels.map((hotel) => (
+					<HotelCard
+					  key={`${hotel.hotelCode}-${hotel.roomCode}-${hotel.rateKey}`}
+					  hotel={hotel}
+					  query={query}
+					  selected={selectedHotel?.rateKey === hotel?.rateKey}
+					  onSelect={() => setSelectedHotel(hotel)}
+					/>
+				  ))
+				) : searchBody ? (
+				  <div className="empty-state">
+					<div className="empty-icon">🏨</div>
+					<h3>No hotels found</h3>
+					<p>Try changing dates, destination, or filters.</p>
+				  </div>
+				) : (
+				  <div className="empty-state">
+					<div className="empty-icon">🏨</div>
+					<h3>Search to see hotels</h3>
+					<p>Choose a destination and click Search.</p>
+				  </div>
+				)}
+				</div>
 
               {displayedHotels.length > PAGE_SIZE ? (
                 <div className="pagination">
@@ -511,23 +511,25 @@ export default function Home() {
               </div>
 
               <div className="map-modal-results">
-                {displayedHotels.length ? (
-                  displayedHotels.map((hotel) => (
-                    <button
-                      key={hotel.id || hotel.hotelCode || hotel.name}
-                      type="button"
-                      className="map-item"
-                      onClick={() => setSelectedHotel(hotel)}
-                    >
-                      <strong>{hotel.name}</strong>
-                      <span>{hotel.destinationName || hotel.zoneName || destination}</span>
-                      <span className="mini-price">INR {hotel.price || hotel.bestRate?.net || ''}</span>
-                    </button>
-                  ))
-                ) : (
-                  <div className="map-empty">No hotel results yet. Search first to load hotels.</div>
-                )}
-              </div>
+				  {displayedHotels.length ? (
+					displayedHotels.map((hotel) => (
+					  <button
+						key={hotel.id || hotel.hotelCode || hotel.name}
+						type="button"
+						className="map-item"
+						onClick={() => setSelectedHotel(hotel)}
+					  >
+						<strong>{hotel.name}</strong>
+						<span>{hotel.destinationName || hotel.zoneName || hotel.city || destination}</span>
+						<span className="mini-price">
+						  {hotel.currency || 'INR'} {hotel.price || hotel.bestRate?.net || 0}
+						</span>
+					  </button>
+					))
+				  ) : (
+					<div className="map-empty">No hotel results yet. Search first to load hotels.</div>
+				  )}
+				</div>
             </div>
           </div>
         </div>
