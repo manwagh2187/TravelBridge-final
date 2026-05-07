@@ -1,13 +1,13 @@
 import Link from 'next/link';
 
-export default function HotelCard({ hotel, query }) {
+export default function HotelCard({ hotel, query, selected = false }) {
   const rate = hotel?.bestRate;
   const price = rate?.net || '';
-  const currency = 'INR';
+  const currency = rate?.currency || hotel?.currency || 'INR';
   const initial = (hotel?.name || 'H').charAt(0).toUpperCase();
 
   return (
-    <article className="hotel-card">
+    <article className={`hotel-card ${selected ? 'selected' : ''}`}>
       <div className="hotel-thumb">
         <div className="hotel-thumb-badge">{hotel?.categoryName || 'Hotel'}</div>
         <div className="hotel-thumb-letter">{initial}</div>

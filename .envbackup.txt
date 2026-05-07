@@ -2,7 +2,14 @@ NODE_ENV=development
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/travelbridge?schema=public"
 STRIPE_SECRET_KEY=sk_test_dummy
 STRIPE_WEBHOOK_SECRET=whsec_dummy
+
 HOTELBEDS_API_KEY=d272a775626f18d972432f3666998c39
 HOTELBEDS_SECRET=WwAyfA1px1
 HOTELBEDS_BASE_URL=https://api.test.hotelbeds.com
+
+
+
+/*manoj.wagh87@gmail.com HOTELBEDS_API_KEY=c9e8047b46e56280fbecd7e9d3517290
+HOTELBEDS_SECRET=RGZYcNgM1u
+HOTELBEDS_BASE_URL=https://api.test.hotelbeds.com*/
 
