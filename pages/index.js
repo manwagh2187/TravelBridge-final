@@ -59,6 +59,8 @@ export default function Home() {
   );
 
   const hotels = Array.isArray(data?.results) ? data.results : [];
+  const total = data?.total ?? hotels.length;
+  const noResults = Boolean(searchBody) && !isLoading && total === 0;
 
   function handleSearch() {
     setError('');
@@ -207,11 +209,11 @@ export default function Home() {
           ))}
         </div>
 
-        {!isLoading && searchBody && hotels.length === 0 ? (
+        {noResults ? (
           <div className="empty-state">
             <div className="empty-icon">🏨</div>
-            <h3>No stays found in {destination}</h3>
-            <p>Try another city or change your dates.</p>
+            <h3>No hotels available for {destination}</h3>
+            <p>Try different dates or another destination.</p>
           </div>
         ) : null}
       </section>

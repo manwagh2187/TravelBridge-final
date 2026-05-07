@@ -13,6 +13,16 @@
   margin: 16px 0 24px;
 }
 
+
+.empty-suggestions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  color: var(--muted);
+  font-weight: 700;
+}
+
 .rate-item {
   display: flex;
   gap: 12px;

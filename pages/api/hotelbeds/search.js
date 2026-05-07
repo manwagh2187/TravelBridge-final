@@ -1,14 +1,5 @@
 import { hbAvailability, normalizeHotelbedsHotel } from '../../../lib/hotelbeds';
 
-function normalizeLanguage(value) {
-  const lang = String(value || 'en').trim().toLowerCase();
-  return lang === 'en' ? 'en' : lang;
-}
-
-function normalizeCurrency(value) {
-  return String(value || 'INR').trim().toUpperCase();
-}
-
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -17,27 +8,26 @@ export default async function handler(req, res) {
   try {
     const body = {
       ...req.body,
-      currency: normalizeCurrency(req.body?.currency),
       destination: {
         ...(req.body?.destination || {}),
         code: String(req.body?.destination?.code || '').trim().toUpperCase(),
       },
+      currency: String(req.body?.currency || 'INR').trim().toUpperCase(),
     };
 
     const data = await hbAvailability(body);
 
-    const rawHotels =
-      data?.hotels?.hotel ||
-      data?.hotels ||
-      data?.results ||
-      [];
-
+    const rawHotels = data?.hotels?.hotel || data?.hotels || data?.results || [];
     const list = Array.isArray(rawHotels) ? rawHotels : [];
     const results = list.map(normalizeHotelbedsHotel);
+    const total = data?.hotels?.total ?? results.length;
+
+    console.log('Hotelbeds success response:', JSON.stringify(data));
 
     return res.status(200).json({
       results,
       raw: data,
+      total,
     });
   } catch (error) {
     console.error('Availability API failed:', error);
