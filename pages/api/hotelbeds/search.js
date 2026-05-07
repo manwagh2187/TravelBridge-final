@@ -19,8 +19,6 @@ export default async function handler(req, res) {
     const results = flattenHotelbedsAvailability(data);
     const total = data?.hotels?.total ?? results.length;
 
-    console.log('Hotelbeds success response:', JSON.stringify(data));
-
     return res.status(200).json({
       results,
       raw: data,
