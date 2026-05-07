@@ -4,9 +4,15 @@ export default function HotelCard({ hotel, query }) {
   const rate = hotel?.bestRate;
   const price = rate?.net || '';
   const currency = 'INR';
+  const initial = (hotel?.name || 'H').charAt(0).toUpperCase();
 
   return (
     <article className="hotel-card">
+      <div className="hotel-thumb">
+        <div className="hotel-thumb-badge">{hotel?.categoryName || 'Hotel'}</div>
+        <div className="hotel-thumb-letter">{initial}</div>
+      </div>
+
       <div className="hotel-body">
         <div className="hotel-topline">
           <div>

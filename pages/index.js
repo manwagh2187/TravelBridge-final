@@ -60,7 +60,9 @@ export default function Home() {
 
   const hotels = Array.isArray(data?.results) ? data.results : [];
   const total = data?.total ?? hotels.length;
-  const noResults = Boolean(searchBody) && !isLoading && total === 0;
+  const apiError = data?.error || '';
+  const quotaExceeded = String(apiError).toLowerCase().includes('quota exceeded');
+  const noResults = Boolean(searchBody) && !isLoading && total === 0 && !apiError;
 
   function handleSearch() {
     setError('');
@@ -127,12 +129,22 @@ export default function Home() {
 
               <div className="search-field">
                 <label>Check-in</label>
-                <input type="date" min={today} value={checkIn} onChange={(e) => setCheckIn(e.target.value)} />
+                <input
+                  type="date"
+                  min={today}
+                  value={checkIn}
+                  onChange={(e) => setCheckIn(e.target.value)}
+                />
               </div>
 
               <div className="search-field">
                 <label>Check-out</label>
-                <input type="date" min={checkIn || today} value={checkOut} onChange={(e) => setCheckOut(e.target.value)} />
+                <input
+                  type="date"
+                  min={checkIn || today}
+                  value={checkOut}
+                  onChange={(e) => setCheckOut(e.target.value)}
+                />
               </div>
 
               <div className="search-field">
@@ -203,11 +215,21 @@ export default function Home() {
 
         {isLoading ? <p>Loading hotels...</p> : null}
 
-        <div className="hotel-grid">
-          {hotels.map((hotel) => (
-            <HotelCard key={hotel.hotelCode || hotel.id} hotel={hotel} query={query} />
-          ))}
-        </div>
+        {apiError ? (
+          <div className="search-error">
+            {quotaExceeded
+              ? 'Hotelbeds quota exceeded. Please try again later or contact support.'
+              : apiError}
+          </div>
+        ) : null}
+
+        {!apiError ? (
+          <div className="hotel-grid">
+            {hotels.map((hotel) => (
+              <HotelCard key={hotel.id || hotel.code} hotel={hotel} query={query} />
+            ))}
+          </div>
+        ) : null}
 
         {noResults ? (
           <div className="empty-state">
