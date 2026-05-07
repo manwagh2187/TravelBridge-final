@@ -12,7 +12,7 @@ export default function ManageBookingPage() {
     setResult(null);
 
     try {
-      const res = await fetch(`/api/hotelbeds/booking/${reference}`);
+      const res = await fetch(`/api/hotelbeds/booking/${encodeURIComponent(reference)}`);
       const data = await res.json();
 
       if (!res.ok) {
@@ -30,9 +30,10 @@ export default function ManageBookingPage() {
   async function cancelBooking() {
     setLoading(true);
     setError('');
+    setResult(null);
 
     try {
-      const res = await fetch(`/api/hotelbeds/cancel/${reference}`, {
+      const res = await fetch(`/api/hotelbeds/cancel/${encodeURIComponent(reference)}`, {
         method: 'DELETE',
       });
 
@@ -73,7 +74,9 @@ export default function ManageBookingPage() {
 
         {error ? <div className="search-error">{error}</div> : null}
 
-        {result ? <pre style={{ whiteSpace: 'pre-wrap' }}>{JSON.stringify(result, null, 2)}</pre> : null}
+        {result ? (
+          <pre style={{ whiteSpace: 'pre-wrap' }}>{JSON.stringify(result, null, 2)}</pre>
+        ) : null}
       </div>
     </div>
   );

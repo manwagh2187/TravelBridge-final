@@ -1,4 +1,4 @@
-import { hbAvailability, normalizeHotelbedsHotel } from '../../../lib/hotelbeds';
+import { hbAvailability, flattenHotelbedsAvailability } from '../../../lib/hotelbeds';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -16,10 +16,7 @@ export default async function handler(req, res) {
     };
 
     const data = await hbAvailability(body);
-
-    const rawHotels = data?.hotels?.hotel || data?.hotels || data?.results || [];
-    const list = Array.isArray(rawHotels) ? rawHotels : [];
-    const results = list.map(normalizeHotelbedsHotel);
+    const results = flattenHotelbedsAvailability(data);
     const total = data?.hotels?.total ?? results.length;
 
     console.log('Hotelbeds success response:', JSON.stringify(data));

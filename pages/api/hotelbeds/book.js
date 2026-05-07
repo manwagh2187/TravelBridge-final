@@ -6,7 +6,43 @@ export default async function handler(req, res) {
   }
 
   try {
-    const data = await hbCreateBooking(req.body);
+    const {
+      hotelCode,
+      rateKey,
+      roomCode,
+      boardName,
+      holder,
+    } = req.body || {};
+
+    if (!hotelCode || !rateKey) {
+      return res.status(400).json({ error: 'Missing hotelCode or rateKey' });
+    }
+
+    const body = {
+      holder: {
+        name: holder?.name || '',
+        surname: holder?.surname || '',
+        email: holder?.email || '',
+        phone: holder?.phone || '',
+      },
+      rooms: [
+        {
+          rateKey,
+          roomCode: roomCode || undefined,
+          boardName: boardName || undefined,
+          paxes: [
+            {
+              type: 'AD',
+              name: holder?.name || '',
+              surname: holder?.surname || '',
+            },
+          ],
+        },
+      ],
+    };
+
+    const data = await hbCreateBooking(body);
+
     return res.status(200).json(data);
   } catch (error) {
     console.error('Book API failed:', error);

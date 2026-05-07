@@ -3,7 +3,7 @@ import { useState } from 'react';
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { hotelId, checkIn, checkOut, guests, destination, rateKey } = router.query;
+  const { hotelCode, rateKey, roomCode, boardName } = router.query;
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -21,14 +21,13 @@ export default function CheckoutPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          hotelId,
-          checkIn,
-          checkOut,
-          guests: Number(guests || 2),
+          hotelCode,
           rateKey,
-          traveler: {
-            firstName,
-            lastName,
+          roomCode,
+          boardName,
+          holder: {
+            name: firstName,
+            surname: lastName,
             email,
             phone,
           },
@@ -45,7 +44,7 @@ export default function CheckoutPage() {
         pathname: '/booking/success',
         query: {
           reference: data?.booking?.reference || data?.reference || data?.bookingReference || 'confirmed',
-          destination,
+          hotelCode,
         },
       });
     } catch (e) {
@@ -58,7 +57,7 @@ export default function CheckoutPage() {
   return (
     <div className="container section">
       <h1>Checkout</h1>
-      <p>{destination}</p>
+      <p>Complete your guest details to confirm the booking.</p>
 
       <div className="info-card">
         <input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="First name" />
