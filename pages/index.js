@@ -46,6 +46,23 @@ function toNumber(value) {
   return Number.isFinite(n) ? n : 0;
 }
 
+function normalizeHotel(hotel) {
+  const bestRate = hotel?.bestRate || hotel?.rates?.[0] || null;
+  return {
+    ...hotel,
+    id: hotel?.id || hotel?.hotelCode || hotel?.code || hotel?.name,
+    hotelCode: hotel?.hotelCode || hotel?.code || hotel?.id || '',
+    name: hotel?.name || hotel?.hotelName || hotel?.title || 'Unnamed hotel',
+    destinationName: hotel?.destinationName || hotel?.city || '',
+    zoneName: hotel?.zoneName || '',
+    categoryName: hotel?.categoryName || hotel?.stars || '',
+    country: hotel?.country || '',
+    price: toNumber(hotel?.price || bestRate?.net || 0),
+    currency: hotel?.currency || bestRate?.currency || 'INR',
+    bestRate,
+  };
+}
+
 export default function Home() {
   const router = useRouter();
   const { isAuthenticated, loading } = useAuth();
@@ -81,7 +98,11 @@ export default function Home() {
     ([url, body]) => postFetcher(url, body)
   );
 
-  const hotels = Array.isArray(data?.results) ? data.results : [];
+  const hotels = useMemo(() => {
+    const list = Array.isArray(data?.results) ? data.results : [];
+    return list.map(normalizeHotel);
+  }, [data]);
+
   const total = data?.total ?? hotels.length;
   const apiError = data?.error || '';
   const quotaExceeded = String(apiError).toLowerCase().includes('quota exceeded');
@@ -104,13 +125,13 @@ export default function Home() {
 
     if (maxPrice !== '') {
       const cap = Number(maxPrice);
-      list = list.filter((hotel) => toNumber(hotel?.price || hotel?.bestRate?.net) <= cap);
+      list = list.filter((hotel) => toNumber(hotel?.price) <= cap);
     }
 
     if (sortBy === 'price-asc') {
-      list.sort((a, b) => toNumber(a?.price || a?.bestRate?.net) - toNumber(b?.price || b?.bestRate?.net));
+      list.sort((a, b) => toNumber(a?.price) - toNumber(b?.price));
     } else if (sortBy === 'price-desc') {
-      list.sort((a, b) => toNumber(b?.price || b?.bestRate?.net) - toNumber(a?.price || a?.bestRate?.net));
+      list.sort((a, b) => toNumber(b?.price) - toNumber(a?.price));
     } else if (sortBy === 'rating') {
       list.sort((a, b) => parseStars(b?.categoryName) - parseStars(a?.categoryName));
     } else {
@@ -118,7 +139,7 @@ export default function Home() {
         const aStars = parseStars(a?.categoryName);
         const bStars = parseStars(b?.categoryName);
         if (bStars !== aStars) return bStars - aStars;
-        return toNumber(a?.price || a?.bestRate?.net) - toNumber(b?.price || b?.bestRate?.net);
+        return toNumber(a?.price) - toNumber(b?.price);
       });
     }
 
@@ -127,9 +148,7 @@ export default function Home() {
 
   const bestDealHotel = useMemo(() => {
     if (!filteredHotels.length) return null;
-    return [...filteredHotels].sort(
-      (a, b) => toNumber(a?.price || a?.bestRate?.net) - toNumber(b?.price || b?.bestRate?.net)
-    )[0];
+    return [...filteredHotels].sort((a, b) => toNumber(a?.price) - toNumber(b?.price))[0];
   }, [filteredHotels]);
 
   const topRatedHotel = useMemo(() => {
@@ -137,7 +156,7 @@ export default function Home() {
     return [...filteredHotels].sort((a, b) => {
       const diff = parseStars(b?.categoryName) - parseStars(a?.categoryName);
       if (diff !== 0) return diff;
-      return toNumber(a?.price || a?.bestRate?.net) - toNumber(b?.price || b?.bestRate?.net);
+      return toNumber(a?.price) - toNumber(b?.price);
     })[0];
   }, [filteredHotels]);
 
@@ -420,15 +439,29 @@ export default function Home() {
           {!apiError ? (
             <>
               <div className="hotel-list">
-                {pagedHotels.map((hotel) => (
-                  <HotelCard
-                    key={hotel.id || hotel.code}
-                    hotel={hotel}
-                    query={query}
-                    selected={selectedHotel?.id === hotel?.id}
-                    onSelect={() => setSelectedHotel(hotel)}
-                  />
-                ))}
+                {pagedHotels.length ? (
+                  pagedHotels.map((hotel) => (
+                    <HotelCard
+                      key={hotel.id || hotel.hotelCode || hotel.name}
+                      hotel={hotel}
+                      query={query}
+                      selected={selectedHotel?.id === hotel?.id}
+                      onSelect={() => setSelectedHotel(hotel)}
+                    />
+                  ))
+                ) : searchBody ? (
+                  <div className="empty-state">
+                    <div className="empty-icon">🏨</div>
+                    <h3>No hotels found</h3>
+                    <p>Try changing dates, destination, or filters.</p>
+                  </div>
+                ) : (
+                  <div className="empty-state">
+                    <div className="empty-icon">🏨</div>
+                    <h3>Search to see hotels</h3>
+                    <p>Choose a destination and click Search.</p>
+                  </div>
+                )}
               </div>
 
               {displayedHotels.length > PAGE_SIZE ? (
@@ -453,14 +486,6 @@ export default function Home() {
                 </div>
               ) : null}
             </>
-          ) : null}
-
-          {noResults ? (
-            <div className="empty-state">
-              <div className="empty-icon">🏨</div>
-              <h3>No hotels available for {destination}</h3>
-              <p>Try different dates or another destination.</p>
-            </div>
           ) : null}
         </section>
       </main>
@@ -489,7 +514,7 @@ export default function Home() {
                 {displayedHotels.length ? (
                   displayedHotels.map((hotel) => (
                     <button
-                      key={hotel.id || hotel.code}
+                      key={hotel.id || hotel.hotelCode || hotel.name}
                       type="button"
                       className="map-item"
                       onClick={() => setSelectedHotel(hotel)}

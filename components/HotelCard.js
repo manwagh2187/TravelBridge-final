@@ -2,8 +2,8 @@ import Link from 'next/link';
 
 export default function HotelCard({ hotel, query, selected = false, onSelect }) {
   const rate = hotel?.bestRate;
-  const price = rate?.net || '';
-  const currency = rate?.currency || hotel?.currency || 'INR';
+  const price = hotel?.price || rate?.net || '';
+  const currency = hotel?.currency || rate?.currency || 'INR';
   const initial = (hotel?.name || 'H').charAt(0).toUpperCase();
   const stars = hotel?.categoryName || 'Hotel';
 
@@ -35,7 +35,7 @@ export default function HotelCard({ hotel, query, selected = false, onSelect }) 
 
         <div className="tb-card-side">
           <div className="tb-rating-box">
-            <strong>{hotel?.categoryName || '4 Stars'}</strong>
+            <strong>{hotel?.categoryName || 'Hotel'}</strong>
             <span>{hotel?.country || ''}</span>
           </div>
 
@@ -48,10 +48,10 @@ export default function HotelCard({ hotel, query, selected = false, onSelect }) 
 
           <Link
             href={{
-              pathname: `/hotel/${hotel.hotelCode}`,
+              pathname: `/hotel/${hotel.hotelCode || hotel.id || ''}`,
               query: {
                 ...query,
-                hotelCode: hotel?.hotelCode || '',
+                hotelCode: hotel?.hotelCode || hotel?.id || '',
                 hotelName: hotel?.name || '',
                 destinationName: hotel?.destinationName || '',
                 categoryName: hotel?.categoryName || '',

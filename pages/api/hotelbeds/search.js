@@ -118,8 +118,8 @@ function fromCsv(csv) {
     });
 
     return {
-      hotelCode: obj.hotelCode,
       id: obj.hotelCode,
+      hotelCode: obj.hotelCode,
       name: obj.name,
       destinationName: obj.destinationName,
       zoneName: obj.zoneName,
