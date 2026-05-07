@@ -95,7 +95,6 @@ export default function Home() {
         code: destinationCode,
       },
       currency: 'INR',
-      language: 'en',
     });
 
     resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });

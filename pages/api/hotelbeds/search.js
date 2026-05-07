@@ -17,7 +17,6 @@ export default async function handler(req, res) {
   try {
     const body = {
       ...req.body,
-      language: normalizeLanguage(req.body?.language),
       currency: normalizeCurrency(req.body?.currency),
       destination: {
         ...(req.body?.destination || {}),
