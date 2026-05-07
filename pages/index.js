@@ -205,7 +205,7 @@ export default function Home() {
 
         <div className="hotel-grid">
           {hotels.map((hotel) => (
-            <HotelCard key={hotel.id || hotel.code} hotel={hotel} query={query} />
+            <HotelCard key={hotel.hotelCode || hotel.id} hotel={hotel} query={query} />
           ))}
         </div>
 
