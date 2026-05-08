@@ -35,7 +35,9 @@ export default function HotelCard({ hotel, query, selected = false, onSelect }) 
   const reviewText = reviewLabel(stars);
   const initial = (title || 'H').charAt(0).toUpperCase();
 
-  function goToDetails() {
+  function goToDetails(e) {
+    e?.stopPropagation?.();
+
     try {
       sessionStorage.setItem(
         `travelbridge-hotel-${hotelCode}`,
@@ -61,15 +63,22 @@ export default function HotelCard({ hotel, query, selected = false, onSelect }) 
     });
   }
 
+  function handleSelect(e) {
+    e?.stopPropagation?.();
+    onSelect?.();
+  }
+
   return (
     <article
       className={`hotel-card ${selected ? 'selected' : ''}`}
-      onClick={onSelect}
+      onClick={handleSelect}
       role="button"
       tabIndex={0}
     >
       <div className="hotel-thumb">
-        <div className="hotel-thumb-badge">{hotel?.categoryName || 'Hotel'}</div>
+        <div className="hotel-thumb-badge">
+          {stars ? `${stars} STAR${stars > 1 ? 'S' : ''}` : 'HOTEL'}
+        </div>
         <div className="hotel-thumb-letter">{initial}</div>
         <div className="hotel-thumb-score">{stars ? `${stars}.0` : '8.5'}</div>
       </div>
@@ -108,7 +117,7 @@ export default function HotelCard({ hotel, query, selected = false, onSelect }) 
           </div>
 
           <div className="hotel-footer-actions">
-            <button type="button" className="btn btn-outline hotel-map-btn" onClick={onSelect}>
+            <button type="button" className="btn btn-outline hotel-map-btn" onClick={handleSelect}>
               View on map
             </button>
             <button type="button" className="btn btn-primary" onClick={goToDetails}>

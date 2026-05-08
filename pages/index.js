@@ -83,12 +83,24 @@ function buildMapLabel(hotel, fallbackDestination) {
 
 function hasFreeCancellation(hotel) {
   const text = String(hotel?.cheapestRate?.rateType || hotel?.cheapestRate?.paymentType || hotel?.cheapestRate?.packaging || '').toLowerCase();
-  return text.includes('free cancellation') || text.includes('free cancel') || text.includes('cancel');
+  return text.includes('free cancellation') || text.includes('free cancel') || text.includes('cancel') || text.includes('refundable');
 }
 
 function isBookable(hotel) {
-  const text = String(hotel?.cheapestRate?.rateType || hotel?.cheapestRate?.paymentType || hotel?.cheapestRate?.packaging || '').toUpperCase();
-  return text.includes('BOOKABLE') || text.includes('AT_WEB') || text.includes('ROOM ONLY') || true;
+  const text = String(hotel?.cheapestRate?.rateType || hotel?.cheapestRate?.paymentType || hotel?.cheapestRate?.packaging || '').toLowerCase();
+  return text.includes('bookable') || text.includes('room only') || text.includes('at_web') || text.includes('web');
+}
+
+function getFilterSummary(filters) {
+  const labels = [];
+  if (filters.starThreshold) labels.push(filters.starThreshold === 5 ? '5 stars' : `${filters.starThreshold}+ stars`);
+  if (filters.onlyDeal) labels.push('Deal only');
+  if (filters.onlyBookable) labels.push('Bookable only');
+  if (filters.onlyRoomOnly) labels.push('Room only');
+  if (filters.onlyFreeCancellation) labels.push('Free cancellation');
+  if (filters.maxPrice !== '') labels.push(`Under ${filters.maxPrice}`);
+  if (filters.textSearch.trim()) labels.push(`Search: ${filters.textSearch.trim()}`);
+  return labels;
 }
 
 export default function Home() {
@@ -104,7 +116,7 @@ export default function Home() {
   const [searchBody, setSearchBody] = useState(null);
   const [error, setError] = useState('');
   const [sortBy, setSortBy] = useState('best');
-  const [minRating, setMinRating] = useState(0);
+  const [starThreshold, setStarThreshold] = useState(0);
   const [maxPrice, setMaxPrice] = useState('');
   const [selectedHotel, setSelectedHotel] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -137,7 +149,7 @@ export default function Home() {
       if (parsed?.checkOut) setCheckOut(parsed.checkOut);
       if (parsed?.guests) setGuests(parsed.guests);
       if (parsed?.sortBy) setSortBy(parsed.sortBy);
-      if (parsed?.minRating !== undefined) setMinRating(parsed.minRating);
+      if (parsed?.starThreshold !== undefined) setStarThreshold(parsed.starThreshold);
       if (parsed?.maxPrice !== undefined) setMaxPrice(parsed.maxPrice);
       if (parsed?.textSearch !== undefined) setTextSearch(parsed.textSearch);
       if (parsed?.onlyDeal !== undefined) setOnlyDeal(parsed.onlyDeal);
@@ -186,8 +198,13 @@ export default function Home() {
       );
     }
 
-    if (minRating) {
-      list = list.filter((hotel) => parseStars(hotel?.categoryName) >= minRating);
+    // Exact star logic
+    if (starThreshold === 3) {
+      list = list.filter((hotel) => parseStars(hotel?.categoryName) >= 3);
+    } else if (starThreshold === 4) {
+      list = list.filter((hotel) => parseStars(hotel?.categoryName) >= 4);
+    } else if (starThreshold === 5) {
+      list = list.filter((hotel) => parseStars(hotel?.categoryName) === 5);
     }
 
     if (maxPrice !== '') {
@@ -196,7 +213,7 @@ export default function Home() {
     }
 
     if (onlyDeal) {
-      list = list.filter((hotel) => toNumber(hotel?.minPrice) > 0);
+      list = list.filter((hotel) => toNumber(hotel?.minPrice) > 0 && toNumber(hotel?.rateCount) >= 1);
     }
 
     if (onlyBookable) {
@@ -230,9 +247,10 @@ export default function Home() {
     }
 
     return list;
-  }, [hotels, textSearch, minRating, maxPrice, sortBy, onlyDeal, onlyBookable, onlyRoomOnly, onlyFreeCancellation]);
+  }, [hotels, textSearch, starThreshold, maxPrice, sortBy, onlyDeal, onlyBookable, onlyRoomOnly, onlyFreeCancellation]);
 
   const total = filteredHotels.length;
+
   const bestDealHotel = useMemo(() => {
     if (!filteredHotels.length) return null;
     return [...filteredHotels].sort((a, b) => toNumber(a?.minPrice) - toNumber(b?.minPrice))[0];
@@ -283,7 +301,7 @@ export default function Home() {
           checkOut,
           guests,
           sortBy,
-          minRating,
+          starThreshold,
           maxPrice,
           textSearch,
           onlyDeal,
@@ -293,7 +311,7 @@ export default function Home() {
         })
       );
     }
-  }, [searchBody, destination, checkIn, checkOut, guests, sortBy, minRating, maxPrice, textSearch, onlyDeal, onlyBookable, onlyRoomOnly, onlyFreeCancellation]);
+  }, [searchBody, destination, checkIn, checkOut, guests, sortBy, starThreshold, maxPrice, textSearch, onlyDeal, onlyBookable, onlyRoomOnly, onlyFreeCancellation]);
 
   function handleSearch() {
     if (!loading && !isAuthenticated) {
@@ -338,7 +356,7 @@ export default function Home() {
         checkOut,
         guests,
         sortBy,
-        minRating,
+        starThreshold,
         maxPrice,
         textSearch,
         onlyDeal,
@@ -351,13 +369,8 @@ export default function Home() {
     resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  function toggleStarFilter(stars) {
-    setMinRating((current) => (current === stars ? 0 : stars));
-    setCurrentPage(1);
-  }
-
   function resetFilters() {
-    setMinRating(0);
+    setStarThreshold(0);
     setMaxPrice('');
     setTextSearch('');
     setSortBy('best');
@@ -367,6 +380,16 @@ export default function Home() {
     setOnlyFreeCancellation(false);
     setCurrentPage(1);
   }
+
+  const activeSummary = getFilterSummary({
+    starThreshold,
+    onlyDeal,
+    onlyBookable,
+    onlyRoomOnly,
+    onlyFreeCancellation,
+    maxPrice,
+    textSearch,
+  });
 
   return (
     <div className="tb-page">
@@ -416,12 +439,7 @@ export default function Home() {
 
               <div className="tb-search-field">
                 <label>Check-out</label>
-                <input
-                  type="date"
-                  min={checkIn || today}
-                  value={checkOut}
-                  onChange={(e) => setCheckOut(e.target.value)}
-                />
+                <input type="date" min={checkIn || today} value={checkOut} onChange={(e) => setCheckOut(e.target.value)} />
               </div>
 
               <div className="tb-search-field">
@@ -526,15 +544,53 @@ export default function Home() {
 
           <div className="side-card">
             <div className="side-title">Popular filters</div>
-            <label>
-              <input type="checkbox" checked={minRating === 3} onChange={() => toggleStarFilter(3)} /> 3+ stars
-            </label>
-            <label>
-              <input type="checkbox" checked={minRating === 4} onChange={() => toggleStarFilter(4)} /> 4+ stars
-            </label>
-            <label>
-              <input type="checkbox" checked={minRating === 5} onChange={() => toggleStarFilter(5)} /> 5+ stars
-            </label>
+
+            <div className="star-filter-group">
+              <button
+                type="button"
+                className={`star-filter-btn ${starThreshold === 0 ? 'active' : ''}`}
+                onClick={() => {
+                  setStarThreshold(0);
+                  setCurrentPage(1);
+                }}
+              >
+                Any
+              </button>
+
+              <button
+                type="button"
+                className={`star-filter-btn ${starThreshold === 3 ? 'active' : ''}`}
+                onClick={() => {
+                  setStarThreshold(3);
+                  setCurrentPage(1);
+                }}
+              >
+                3+ stars
+              </button>
+
+              <button
+                type="button"
+                className={`star-filter-btn ${starThreshold === 4 ? 'active' : ''}`}
+                onClick={() => {
+                  setStarThreshold(4);
+                  setCurrentPage(1);
+                }}
+              >
+                4+ stars
+              </button>
+
+              <button
+                type="button"
+                className={`star-filter-btn ${starThreshold === 5 ? 'active' : ''}`}
+                onClick={() => {
+                  setStarThreshold(5);
+                  setCurrentPage(1);
+                }}
+              >
+                5 stars
+              </button>
+            </div>
+
             <label>
               <input type="checkbox" checked={onlyDeal} onChange={() => { setOnlyDeal((v) => !v); setCurrentPage(1); }} /> Deal only
             </label>
@@ -552,6 +608,19 @@ export default function Home() {
               Reset filters
             </button>
           </div>
+
+          {activeSummary.length ? (
+            <div className="side-card">
+              <div className="side-title">Active filters</div>
+              <div className="active-filter-bar">
+                {activeSummary.map((item) => (
+                  <span key={item} className="toolbar-pill active-pill">
+                    {item}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </aside>
 
         <section className="tb-results">
@@ -612,9 +681,7 @@ export default function Home() {
 
           {apiError ? (
             <div className="search-error">
-              {quotaExceeded
-                ? 'Hotelbeds quota exceeded. Please try again later or contact support.'
-                : apiError}
+              {quotaExceeded ? 'Hotelbeds quota exceeded. Please try again later or contact support.' : apiError}
             </div>
           ) : null}
 
@@ -648,21 +715,13 @@ export default function Home() {
 
               {displayedHotels.length > PAGE_SIZE ? (
                 <div className="pagination">
-                  <button
-                    className="btn btn-outline"
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
-                  >
+                  <button className="btn btn-outline" onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1}>
                     Prev
                   </button>
                   <div className="pagination-info">
                     Page {currentPage} of {totalPages}
                   </div>
-                  <button
-                    className="btn btn-outline"
-                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={currentPage === totalPages}
-                  >
+                  <button className="btn btn-outline" onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
                     Next
                   </button>
                 </div>
