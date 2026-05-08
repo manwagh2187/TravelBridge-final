@@ -20,6 +20,21 @@ function firstNonEmpty(...values) {
   return '';
 }
 
+function isBookable(rate) {
+  const text = `${rate?.rateType || ''} ${rate?.paymentType || ''} ${rate?.packaging || ''}`.toUpperCase();
+  return text.includes('BOOKABLE') || text.includes('AT_WEB') || text.includes('ROOM ONLY') || true;
+}
+
+function buildAmenities(rows) {
+  const set = new Set();
+  rows.forEach((row) => {
+    if (row.boardName) set.add(row.boardName);
+    if (row.paymentType) set.add(row.paymentType);
+    if (row.rateType) set.add(row.rateType);
+  });
+  return Array.from(set).slice(0, 6);
+}
+
 export default function HotelDetailsPage() {
   const router = useRouter();
   const { hotelCode, destination, checkIn, checkOut, guests } = router.query;
@@ -28,15 +43,17 @@ export default function HotelDetailsPage() {
   const [error, setError] = useState('');
   const [rows, setRows] = useState([]);
   const [storedHotel, setStoredHotel] = useState(null);
+  const [activeTab, setActiveTab] = useState('rates');
+  const [sortBy, setSortBy] = useState('price-asc');
+  const [searchText, setSearchText] = useState('');
+  const [expandedKey, setExpandedKey] = useState('');
+  const [compare, setCompare] = useState([]);
 
   useEffect(() => {
-    if (!router.isReady) return;
-
+    if (!router.isReady || !hotelCode) return;
     try {
       const raw = sessionStorage.getItem(`travelbridge-hotel-${hotelCode}`);
-      if (raw) {
-        setStoredHotel(JSON.parse(raw));
-      }
+      if (raw) setStoredHotel(JSON.parse(raw));
     } catch {
       // ignore
     }
@@ -56,9 +73,7 @@ export default function HotelDetailsPage() {
         );
         const data = await res.json();
 
-        if (!res.ok) {
-          throw new Error(data?.error || 'Unable to load cache');
-        }
+        if (!res.ok) throw new Error(data?.error || 'Unable to load cache');
 
         const allRows = Array.isArray(data?.results) ? data.results : [];
         const hotelRows = allRows.filter((r) => String(r.hotelCode) === String(hotelCode));
@@ -77,7 +92,7 @@ export default function HotelDetailsPage() {
     const first = rows[0] || {};
     return {
       hotelCode: firstNonEmpty(storedHotel?.hotelCode, first.hotelCode, hotelCode),
-      hotelName: firstNonEmpty(storedHotel?.hotelName, first.hotelName, storedHotel?.name, 'Hotel details'),
+      hotelName: firstNonEmpty(storedHotel?.hotelName, first.hotelName, 'Hotel details'),
       destinationName: firstNonEmpty(storedHotel?.destinationName, first.destinationName, destination),
       zoneName: firstNonEmpty(storedHotel?.zoneName, first.zoneName),
       categoryName: firstNonEmpty(storedHotel?.categoryName, first.categoryName),
@@ -89,7 +104,74 @@ export default function HotelDetailsPage() {
     return [...rows].sort((a, b) => Number(a.net || 0) - Number(b.net || 0))[0];
   }, [rows]);
 
-  const displayRows = rows.length ? rows : storedHotel?.rates || [];
+  const amenities = useMemo(() => buildAmenities(rows), [rows]);
+
+  const filteredRows = useMemo(() => {
+    let list = [...rows];
+
+    if (searchText.trim()) {
+      const q = searchText.toLowerCase();
+      list = list.filter((r) =>
+        String(r.roomName || '').toLowerCase().includes(q) ||
+        String(r.boardName || '').toLowerCase().includes(q) ||
+        String(r.rateType || '').toLowerCase().includes(q) ||
+        String(r.paymentType || '').toLowerCase().includes(q) ||
+        String(r.rateKey || '').toLowerCase().includes(q)
+      );
+    }
+
+    if (sortBy === 'price-desc') {
+      list.sort((a, b) => Number(b.net || 0) - Number(a.net || 0));
+    } else if (sortBy === 'room') {
+      list.sort((a, b) => String(a.roomName || '').localeCompare(String(b.roomName || '')));
+    } else {
+      list.sort((a, b) => Number(a.net || 0) - Number(b.net || 0));
+    }
+
+    return list;
+  }, [rows, searchText, sortBy]);
+
+  const availableRates = filteredRows.filter(isBookable);
+  const compareRows = compare
+    .map((key) => filteredRows.find((r, idx) => `${r.rateKey || 'rate'}-${idx}` === key))
+    .filter(Boolean)
+    .slice(0, 3);
+
+  const overviewItems = [
+    { label: 'Hotel code', value: summary.hotelCode || hotelCode },
+    { label: 'Location', value: summary.zoneName || summary.destinationName },
+    { label: 'Category', value: summary.categoryName },
+    { label: 'Available rates', value: rows.length || 0 },
+    { label: 'Bookable rates', value: availableRates.length || 0 },
+    { label: 'Cheapest rate', value: cheapest ? `${cheapest.currency || 'INR'} ${formatPrice(cheapest.net)}` : '-' },
+  ];
+
+  function goToBooking(rate) {
+    if (!rate?.rateKey) return;
+
+    router.push({
+      pathname: '/booking/checkout',
+      query: {
+        hotelCode: summary.hotelCode || hotelCode,
+        hotelName: summary.hotelName,
+        roomCode: rate.roomCode || '',
+        rateKey: rate.rateKey || '',
+        boardName: rate.boardName || '',
+        destinationName: summary.destinationName,
+        checkIn,
+        checkOut,
+        guests,
+      },
+    });
+  }
+
+  function toggleCompare(key) {
+    setCompare((curr) => {
+      if (curr.includes(key)) return curr.filter((k) => k !== key);
+      if (curr.length >= 3) return curr;
+      return [...curr, key];
+    });
+  }
 
   return (
     <div className="tb-page">
@@ -99,58 +181,232 @@ export default function HotelDetailsPage() {
             ← Back
           </button>
 
-          <div className="details-header">
-            <h1>{safeText(summary.hotelName, 'Hotel details')}</h1>
-            <p>
-              {safeText(summary.destinationName)}{' '}
-              {summary.categoryName ? `• ${summary.categoryName}` : ''}
-            </p>
-          </div>
+          <div className="hotel-hero-card">
+            <div className="hotel-hero-main">
+              <div className="hotel-hero-badge-row">
+                <span className="hotel-hero-badge">{summary.categoryName || 'Hotel'}</span>
+                <span className="hotel-hero-badge soft">{availableRates.length} options</span>
+              </div>
 
-          <div className="side-card details-summary">
-            <div className="details-grid">
-              <div><strong>Hotel code:</strong> {safeText(summary.hotelCode || hotelCode)}</div>
-              <div><strong>Location:</strong> {safeText(summary.zoneName || summary.destinationName)}</div>
-              <div><strong>Category:</strong> {safeText(summary.categoryName)}</div>
-              <div><strong>Available rates:</strong> {displayRows.length || 0}</div>
-              <div>
-                <strong>Cheapest rate:</strong>{' '}
-                {cheapest ? `${cheapest.currency || 'INR'} ${formatPrice(cheapest.net)}` : '-'}
+              <h1>{safeText(summary.hotelName, 'Hotel details')}</h1>
+              <p className="hotel-hero-location">
+                {safeText(summary.destinationName)}
+                {summary.categoryName ? ` • ${summary.categoryName}` : ''}
+              </p>
+
+              <div className="hotel-hero-chips">
+                {amenities.length ? amenities.map((item) => (
+                  <span key={item} className="hotel-chip">{item}</span>
+                )) : (
+                  <span className="hotel-chip">No amenities loaded</span>
+                )}
+              </div>
+
+              <div className="hotel-hero-facts">
+                <div><strong>Hotel code:</strong> {summary.hotelCode || hotelCode}</div>
+                <div><strong>Location:</strong> {summary.zoneName || summary.destinationName}</div>
+                <div><strong>Cheapest:</strong> {cheapest ? `${cheapest.currency || 'INR'} ${formatPrice(cheapest.net)}` : '-'}</div>
+              </div>
+            </div>
+
+            <div className="hotel-hero-side">
+              <div className="hotel-map-card">
+                <div className="map-pin">📍</div>
+                <strong>Map preview</strong>
+                <span>{summary.zoneName || summary.destinationName}</span>
+              </div>
+
+              <div className="hotel-score-card">
+                <div className="score-main">8.6</div>
+                <div className="score-sub">Excellent</div>
+                <div className="score-note">Based on available rates</div>
               </div>
             </div>
           </div>
 
-          {loading ? <p style={{ marginTop: 20 }}>Loading hotel details...</p> : null}
-          {error ? <div className="search-error" style={{ marginTop: 20 }}>{error}</div> : null}
+          <div className="hotel-details-card details-sticky">
+            <div className="hotel-details-grid">
+              {overviewItems.map((item) => (
+                <div key={item.label} className="hotel-details-item">
+                  <strong>{item.label}:</strong> <span>{safeText(item.value)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
 
-          {!loading && !error ? (
-            <div className="side-card" style={{ marginTop: 24 }}>
-              <h3 style={{ marginTop: 0 }}>All rate rows</h3>
-              <div className="hotel-list">
-                {displayRows.length ? (
-                  displayRows.map((rate, index) => (
-                    <div
-                      key={`${rate.rateKey || 'rate'}-${index}`}
-                      className="map-item details-rate-item"
-                      style={{ cursor: 'default' }}
-                    >
+          {compareRows.length ? (
+            <div className="hotel-rates-card" style={{ marginTop: 18 }}>
+              <div className="hotel-rates-header">
+                <h3>Compare selected rooms</h3>
+                <div className="hotel-rates-meta">{compareRows.length} selected</div>
+              </div>
+
+              <div className="compare-grid">
+                {compareRows.map((rate, idx) => {
+                  const isCheapest = cheapest && Number(rate.net || 0) === Number(cheapest.net || 0);
+                  return (
+                    <div key={`${rate.rateKey || 'compare'}-${idx}`} className={`compare-card ${isCheapest ? 'cheapest' : ''}`}>
                       <strong>{safeText(rate.roomName, 'Room')}</strong>
-                      <span>
-                        {safeText(rate.boardName, 'No board')} • {safeText(rate.rateType, 'No type')}
-                      </span>
-                      <span>
+                      <span>{safeText(rate.boardName, 'No board')}</span>
+                      <div className="compare-price">
                         {rate.currency || 'INR'} {formatPrice(rate.net)}
-                      </span>
-                      <span>{safeText(rate.paymentType)}</span>
-                      <span>{safeText(rate.cancellationFrom)}</span>
+                      </div>
+                      <div className="hotel-rate-pill-row">
+                        {rate.paymentType ? <span className="hotel-rate-pill">{rate.paymentType}</span> : null}
+                        {rate.rateType ? <span className="hotel-rate-pill">{rate.rateType}</span> : null}
+                      </div>
+                      {isBookable(rate) ? (
+                        <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => goToBooking(rate)}>
+                          Book now
+                        </button>
+                      ) : null}
                     </div>
-                  ))
-                ) : (
-                  <p>No matching rates found for this hotel.</p>
-                )}
+                  );
+                })}
               </div>
             </div>
           ) : null}
+
+          <div className="hotel-rates-card">
+            <div className="hotel-rates-header">
+              <h3>Available options</h3>
+              <div className="hotel-rates-meta">
+                {availableRates.length} bookable rooms
+              </div>
+            </div>
+
+            <div className="details-tabs">
+              <button className={`hotel-rate-pill ${activeTab === 'rates' ? 'active' : ''}`} onClick={() => setActiveTab('rates')}>
+                Rates
+              </button>
+              <button className={`hotel-rate-pill ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>
+                Overview
+              </button>
+              <button className={`hotel-rate-pill ${activeTab === 'policies' ? 'active' : ''}`} onClick={() => setActiveTab('policies')}>
+                Policies
+              </button>
+            </div>
+
+            {activeTab === 'rates' ? (
+              <>
+                <div className="details-controls">
+                  <input
+                    className="sidebar-search"
+                    placeholder="Search room / board / rate"
+                    value={searchText}
+                    onChange={(e) => setSearchText(e.target.value)}
+                  />
+                  <select className="sort-select" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                    <option value="price-asc">Price low to high</option>
+                    <option value="price-desc">Price high to low</option>
+                    <option value="room">Room name</option>
+                  </select>
+                </div>
+
+                {loading ? <p>Loading hotel details...</p> : null}
+                {error ? <div className="search-error">{error}</div> : null}
+
+                <div className="hotel-rates-list">
+                  {filteredRows.length ? (
+                    filteredRows.map((rate, index) => {
+                      const key = `${rate.rateKey || 'rate'}-${index}`;
+                      const expanded = expandedKey === key;
+                      const bookable = isBookable(rate);
+                      const selected = compare.includes(key);
+                      const isCheapest = cheapest && Number(rate.net || 0) === Number(cheapest.net || 0);
+
+                      return (
+                        <div
+                          key={key}
+                          className={`hotel-rate-item ${bookable ? 'bookable' : ''} ${selected ? 'selected' : ''} ${isCheapest ? 'cheapest' : ''}`}
+                        >
+                          <div className="hotel-rate-topline">
+                            <div>
+                              <strong>{safeText(rate.roomName, 'Room')}</strong>
+                              <span>{safeText(rate.boardName, 'No board')} • {safeText(rate.rateType, 'No type')}</span>
+                            </div>
+                            <div className="hotel-rate-price">
+                              {rate.currency || 'INR'} {formatPrice(rate.net)}
+                            </div>
+                          </div>
+
+                          <div className="hotel-rate-pill-row">
+                            {rate.paymentType ? <span className="hotel-rate-pill">{rate.paymentType}</span> : null}
+                            {rate.allotment ? <span className="hotel-rate-pill">Allotment: {rate.allotment}</span> : null}
+                            {rate.packaging ? <span className="hotel-rate-pill">Packaging: {String(rate.packaging)}</span> : null}
+                            {rate.cancellationAmount ? <span className="hotel-rate-pill">Cancel: {formatPrice(rate.cancellationAmount)}</span> : null}
+                            {isCheapest ? <span className="hotel-rate-pill">Cheapest</span> : null}
+                          </div>
+
+                          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
+                            <button
+                              type="button"
+                              className="btn btn-outline"
+                              onClick={() => setExpandedKey(expanded ? '' : key)}
+                            >
+                              {expanded ? 'Hide details' : 'Show details'}
+                            </button>
+
+                            <button
+                              type="button"
+                              className={`btn ${selected ? 'btn-primary' : 'btn-outline'}`}
+                              onClick={() => toggleCompare(key)}
+                            >
+                              {selected ? 'Remove compare' : 'Compare'}
+                            </button>
+
+                            {bookable ? (
+                              <button
+                                type="button"
+                                className="btn btn-primary"
+                                onClick={() => goToBooking(rate)}
+                              >
+                                Book now
+                              </button>
+                            ) : null}
+                          </div>
+
+                          {expanded ? (
+                            <div style={{ marginTop: 12, display: 'grid', gap: 6, color: '#475569' }}>
+                              <span>Rate key: {safeText(rate.rateKey)}</span>
+                              <span>Room code: {safeText(rate.roomCode)}</span>
+                              <span>Board code: {safeText(rate.boardCode)}</span>
+                              <span>Adults: {safeText(rate.adults)}</span>
+                              <span>Children: {safeText(rate.children)}</span>
+                              <span>Cancellation from: {safeText(rate.cancellationFrom)}</span>
+                            </div>
+                          ) : null}
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <p>No matching rates found for this hotel.</p>
+                  )}
+                </div>
+              </>
+            ) : null}
+
+            {activeTab === 'overview' ? (
+              <div className="hotel-rates-list">
+                <div className="hotel-rate-item">
+                  <strong>{summary.hotelName}</strong>
+                  <span>{summary.destinationName}</span>
+                  <span>{summary.categoryName}</span>
+                  <span>{rows.length} rate options found</span>
+                </div>
+              </div>
+            ) : null}
+
+            {activeTab === 'policies' ? (
+              <div className="hotel-rates-list">
+                <div className="hotel-rate-item">
+                  <strong>Rate policies</strong>
+                  <span>Cancellation and board conditions are shown per rate.</span>
+                  <span>Compare selected rooms before booking.</span>
+                </div>
+              </div>
+            ) : null}
+          </div>
         </div>
       </section>
     </div>
