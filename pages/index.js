@@ -4,16 +4,7 @@ import { useRouter } from 'next/router';
 import { useAuth } from '../context/AuthContext';
 import HotelCard from '../components/HotelCard';
 
-const DESTINATIONS = [
-  'Mumbai',
-  'Delhi',
-  'Bengaluru',
-  'Chennai',
-  'Hyderabad',
-  'Kolkata',
-  'Goa',
-  'Jaipur',
-];
+const DESTINATIONS = ['Mumbai', 'Delhi', 'Bengaluru', 'Chennai', 'Hyderabad', 'Kolkata', 'Goa', 'Jaipur'];
 
 const DESTINATION_CODES = {
   Mumbai: 'MUM',
@@ -29,12 +20,14 @@ const DESTINATION_CODES = {
 const PAGE_SIZE = 10;
 const today = new Date().toISOString().split('T')[0];
 
-const postFetcher = (url, body) =>
-  fetch(url, {
+const postFetcher = async (url, body) => {
+  const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
-  }).then((r) => r.json());
+  });
+  return res.json();
+};
 
 function parseStars(categoryName) {
   const match = String(categoryName || '').match(/(\d+)/);
@@ -46,21 +39,32 @@ function toNumber(value) {
   return Number.isFinite(n) ? n : 0;
 }
 
-function normalizeHotel(hotel) {
-  const bestRate = hotel?.bestRate || hotel?.rates?.[0] || null;
-  return {
-    ...hotel,
-    id: hotel?.id || hotel?.hotelCode || hotel?.code || hotel?.name,
-    hotelCode: hotel?.hotelCode || hotel?.code || hotel?.id || '',
-    name: hotel?.name || hotel?.hotelName || hotel?.title || 'Unnamed hotel',
-    destinationName: hotel?.destinationName || hotel?.city || '',
-    zoneName: hotel?.zoneName || '',
-    categoryName: hotel?.categoryName || hotel?.stars || '',
-    country: hotel?.country || '',
-    price: toNumber(hotel?.price || bestRate?.net || 0),
-    currency: hotel?.currency || bestRate?.currency || 'INR',
-    bestRate,
-  };
+function groupByHotel(rows) {
+  const map = new Map();
+
+  for (const row of rows) {
+    const key = row?.hotelCode || row?.hotelName || `${row?.hotelName || 'hotel'}-${row?.zoneName || ''}`;
+    if (!map.has(key)) {
+      map.set(key, {
+        ...row,
+        rates: [row],
+        minPrice: toNumber(row?.net || row?.price),
+        rateCount: 1,
+        cheapestRate: row,
+      });
+    } else {
+      const current = map.get(key);
+      current.rates.push(row);
+      current.rateCount += 1;
+      const rowPrice = toNumber(row?.net || row?.price);
+      if (rowPrice < current.minPrice) {
+        current.minPrice = rowPrice;
+        current.cheapestRate = row;
+      }
+    }
+  }
+
+  return Array.from(map.values());
 }
 
 export default function Home() {
@@ -70,8 +74,8 @@ export default function Home() {
 
   const [destination, setDestination] = useState('Delhi');
   const [destinationOpen, setDestinationOpen] = useState(false);
-  const [checkIn, setCheckIn] = useState('2026-05-07');
-  const [checkOut, setCheckOut] = useState('2026-05-08');
+  const [checkIn, setCheckIn] = useState('2026-05-14');
+  const [checkOut, setCheckOut] = useState('2026-05-15');
   const [guests, setGuests] = useState(2);
   const [searchBody, setSearchBody] = useState(null);
   const [error, setError] = useState('');
@@ -85,7 +89,7 @@ export default function Home() {
 
   const query = useMemo(
     () => ({
-      destination,
+      destination: DESTINATION_CODES[destination] || destination,
       checkIn,
       checkOut,
       guests,
@@ -93,17 +97,47 @@ export default function Home() {
     [destination, checkIn, checkOut, guests]
   );
 
+  useEffect(() => {
+    const saved = sessionStorage.getItem('travelbridge-search');
+    if (!saved) return;
+
+    try {
+      const parsed = JSON.parse(saved);
+      if (parsed?.searchBody) setSearchBody(parsed.searchBody);
+      if (parsed?.destination) setDestination(parsed.destination);
+      if (parsed?.checkIn) setCheckIn(parsed.checkIn);
+      if (parsed?.checkOut) setCheckOut(parsed.checkOut);
+      if (parsed?.guests) setGuests(parsed.guests);
+      if (parsed?.sortBy) setSortBy(parsed.sortBy);
+      if (parsed?.minRating !== undefined) setMinRating(parsed.minRating);
+      if (parsed?.maxPrice !== undefined) setMaxPrice(parsed.maxPrice);
+      if (parsed?.textSearch !== undefined) setTextSearch(parsed.textSearch);
+    } catch {
+      // ignore invalid saved state
+    }
+  }, []);
+
   const { data, isLoading } = useSWR(
     searchBody ? ['/api/hotelbeds/search', searchBody] : null,
-    ([url, body]) => postFetcher(url, body)
+    async ([url, body]) => {
+      const response = await postFetcher(url, body);
+
+      if (response?.error && String(response.error).toLowerCase().includes('quota exceeded')) {
+        const fallback = await fetch(
+          `/api/hotelbeds/cache?destination=${encodeURIComponent(DESTINATION_CODES[destination] || destination)}&checkIn=${encodeURIComponent(checkIn)}&checkOut=${encodeURIComponent(checkOut)}&guests=${encodeURIComponent(guests)}`
+        ).then((r) => r.json());
+
+        return fallback;
+      }
+
+      return response;
+    }
   );
 
-  const hotels = useMemo(() => {
-    const list = Array.isArray(data?.results) ? data.results : [];
-    return list.map(normalizeHotel);
-  }, [data]);
+  const rateRows = useMemo(() => (Array.isArray(data?.results) ? data.results : []), [data]);
+  const hotels = useMemo(() => groupByHotel(rateRows), [rateRows]);
 
-  const total = data?.total ?? hotels.length;
+  const total = hotels.length;
   const apiError = data?.error || '';
   const quotaExceeded = String(apiError).toLowerCase().includes('quota exceeded');
 
@@ -113,9 +147,11 @@ export default function Home() {
     if (textSearch.trim()) {
       const q = textSearch.toLowerCase();
       list = list.filter((hotel) =>
-        String(hotel?.name || '').toLowerCase().includes(q) ||
+        String(hotel?.hotelName || '').toLowerCase().includes(q) ||
         String(hotel?.destinationName || '').toLowerCase().includes(q) ||
-        String(hotel?.zoneName || '').toLowerCase().includes(q)
+        String(hotel?.zoneName || '').toLowerCase().includes(q) ||
+        String(hotel?.cheapestRate?.roomName || '').toLowerCase().includes(q) ||
+        String(hotel?.cheapestRate?.boardName || '').toLowerCase().includes(q)
       );
     }
 
@@ -125,13 +161,13 @@ export default function Home() {
 
     if (maxPrice !== '') {
       const cap = Number(maxPrice);
-      list = list.filter((hotel) => toNumber(hotel?.price) <= cap);
+      list = list.filter((hotel) => toNumber(hotel?.minPrice) <= cap);
     }
 
     if (sortBy === 'price-asc') {
-      list.sort((a, b) => toNumber(a?.price) - toNumber(b?.price));
+      list.sort((a, b) => toNumber(a?.minPrice) - toNumber(b?.minPrice));
     } else if (sortBy === 'price-desc') {
-      list.sort((a, b) => toNumber(b?.price) - toNumber(a?.price));
+      list.sort((a, b) => toNumber(b?.minPrice) - toNumber(a?.minPrice));
     } else if (sortBy === 'rating') {
       list.sort((a, b) => parseStars(b?.categoryName) - parseStars(a?.categoryName));
     } else {
@@ -139,7 +175,7 @@ export default function Home() {
         const aStars = parseStars(a?.categoryName);
         const bStars = parseStars(b?.categoryName);
         if (bStars !== aStars) return bStars - aStars;
-        return toNumber(a?.price) - toNumber(b?.price);
+        return toNumber(a?.minPrice) - toNumber(b?.minPrice);
       });
     }
 
@@ -148,7 +184,7 @@ export default function Home() {
 
   const bestDealHotel = useMemo(() => {
     if (!filteredHotels.length) return null;
-    return [...filteredHotels].sort((a, b) => toNumber(a?.price) - toNumber(b?.price))[0];
+    return [...filteredHotels].sort((a, b) => toNumber(a?.minPrice) - toNumber(b?.minPrice))[0];
   }, [filteredHotels]);
 
   const topRatedHotel = useMemo(() => {
@@ -156,16 +192,15 @@ export default function Home() {
     return [...filteredHotels].sort((a, b) => {
       const diff = parseStars(b?.categoryName) - parseStars(a?.categoryName);
       if (diff !== 0) return diff;
-      return toNumber(a?.price) - toNumber(b?.price);
+      return toNumber(a?.minPrice) - toNumber(b?.minPrice);
     })[0];
   }, [filteredHotels]);
 
   const displayedHotels = filteredHotels;
   const totalPages = Math.max(1, Math.ceil(displayedHotels.length / PAGE_SIZE));
   const pagedHotels = displayedHotels.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
-  const noResults = Boolean(searchBody) && !isLoading && displayedHotels.length === 0 && !apiError;
   const featuredHotel = bestDealHotel || topRatedHotel;
-  const mapLabel = selectedHotel?.name || featuredHotel?.name || destination;
+  const mapLabel = selectedHotel?.hotelName || featuredHotel?.hotelName || destination;
 
   const destinationSuggestions = useMemo(() => {
     const q = destination.trim().toLowerCase();
@@ -184,6 +219,25 @@ export default function Home() {
       setCurrentPage(totalPages);
     }
   }, [currentPage, totalPages]);
+
+  useEffect(() => {
+    if (searchBody) {
+      sessionStorage.setItem(
+        'travelbridge-search',
+        JSON.stringify({
+          searchBody,
+          destination,
+          checkIn,
+          checkOut,
+          guests,
+          sortBy,
+          minRating,
+          maxPrice,
+          textSearch,
+        })
+      );
+    }
+  }, [searchBody, destination, checkIn, checkOut, guests, sortBy, minRating, maxPrice, textSearch]);
 
   function handleSearch() {
     if (!loading && !isAuthenticated) {
@@ -215,12 +269,29 @@ export default function Home() {
       return;
     }
 
-    setSearchBody({
+    const nextSearchBody = {
       stay: { checkIn, checkOut },
       occupancies: [{ rooms: 1, adults: guests, children: 0 }],
       destination: { code: destinationCode },
       currency: 'INR',
-    });
+    };
+
+    setSearchBody(nextSearchBody);
+
+    sessionStorage.setItem(
+      'travelbridge-search',
+      JSON.stringify({
+        searchBody: nextSearchBody,
+        destination,
+        checkIn,
+        checkOut,
+        guests,
+        sortBy: 'best',
+        minRating: 0,
+        maxPrice: '',
+        textSearch: '',
+      })
+    );
 
     resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
@@ -336,7 +407,7 @@ export default function Home() {
             <div className="side-card-title">Search on map</div>
             <button type="button" className="map-mini-box" onClick={() => setMapPopupOpen(true)}>
               <div className="map-pin">📍</div>
-              <div className="map-text">{destination}</div>
+              <div className="map-text">{mapLabel}</div>
             </button>
           </div>
 
@@ -392,9 +463,11 @@ export default function Home() {
             <div className="side-title">Best deal</div>
             {featuredHotel ? (
               <div className="mini-deal">
-                <strong>{featuredHotel.name}</strong>
+                <strong>{featuredHotel.hotelName}</strong>
                 <span>{featuredHotel.destinationName || featuredHotel.zoneName || destination}</span>
-                <div className="mini-price">INR {featuredHotel.price}</div>
+                <div className="mini-price">
+                  {featuredHotel.currency || 'INR'} {featuredHotel.minPrice || 0}
+                </div>
               </div>
             ) : (
               <p className="muted">Search to see best deals.</p>
@@ -404,7 +477,7 @@ export default function Home() {
 
         <section className="tb-results">
           <div className="tb-results-head">
-            <h2>{total} properties in {destination}</h2>
+            <h2>{total} hotels in {destination}</h2>
             <select
               className="sort-select"
               value={sortBy}
@@ -439,30 +512,30 @@ export default function Home() {
           {!apiError ? (
             <>
               <div className="hotel-list">
-				  {pagedHotels.length ? (
-				  pagedHotels.map((hotel) => (
-					<HotelCard
-					  key={`${hotel.hotelCode}-${hotel.roomCode}-${hotel.rateKey}`}
-					  hotel={hotel}
-					  query={query}
-					  selected={selectedHotel?.rateKey === hotel?.rateKey}
-					  onSelect={() => setSelectedHotel(hotel)}
-					/>
-				  ))
-				) : searchBody ? (
-				  <div className="empty-state">
-					<div className="empty-icon">🏨</div>
-					<h3>No hotels found</h3>
-					<p>Try changing dates, destination, or filters.</p>
-				  </div>
-				) : (
-				  <div className="empty-state">
-					<div className="empty-icon">🏨</div>
-					<h3>Search to see hotels</h3>
-					<p>Choose a destination and click Search.</p>
-				  </div>
-				)}
-				</div>
+                {pagedHotels.length ? (
+                  pagedHotels.map((hotel) => (
+                    <HotelCard
+                      key={hotel.hotelCode}
+                      hotel={hotel}
+                      query={query}
+                      selected={selectedHotel?.hotelCode === hotel?.hotelCode}
+                      onSelect={() => setSelectedHotel(hotel)}
+                    />
+                  ))
+                ) : searchBody ? (
+                  <div className="empty-state">
+                    <div className="empty-icon">🏨</div>
+                    <h3>No hotels found</h3>
+                    <p>Try changing dates, destination, or filters.</p>
+                  </div>
+                ) : (
+                  <div className="empty-state">
+                    <div className="empty-icon">🏨</div>
+                    <h3>Search to see hotels</h3>
+                    <p>Choose a destination and click Search.</p>
+                  </div>
+                )}
+              </div>
 
               {displayedHotels.length > PAGE_SIZE ? (
                 <div className="pagination">
@@ -506,30 +579,31 @@ export default function Home() {
               <div className="map-modal-map">
                 <div className="map-canvas-placeholder">
                   <div className="map-pin">📍</div>
-                  <div className="map-text">{destination}</div>
+                  <div className="map-text">{mapLabel}</div>
                 </div>
               </div>
 
               <div className="map-modal-results">
-				  {displayedHotels.length ? (
-					displayedHotels.map((hotel) => (
-					  <button
-						key={hotel.id || hotel.hotelCode || hotel.name}
-						type="button"
-						className="map-item"
-						onClick={() => setSelectedHotel(hotel)}
-					  >
-						<strong>{hotel.name}</strong>
-						<span>{hotel.destinationName || hotel.zoneName || hotel.city || destination}</span>
-						<span className="mini-price">
-						  {hotel.currency || 'INR'} {hotel.price || hotel.bestRate?.net || 0}
-						</span>
-					  </button>
-					))
-				  ) : (
-					<div className="map-empty">No hotel results yet. Search first to load hotels.</div>
-				  )}
-				</div>
+                {displayedHotels.length ? (
+                  displayedHotels.map((hotel) => (
+                    <button
+                      key={hotel.hotelCode}
+                      type="button"
+                      className="map-item"
+                      onClick={() => setSelectedHotel(hotel)}
+                    >
+                      <strong>{hotel.hotelName}</strong>
+                      <span>{hotel.cheapestRate?.roomName || 'Room'} • {hotel.cheapestRate?.boardName || 'No board'}</span>
+                      <span>{hotel.destinationName || hotel.zoneName || destination}</span>
+                      <span className="mini-price">
+                        {hotel.currency || 'INR'} {hotel.minPrice || 0}
+                      </span>
+                    </button>
+                  ))
+                ) : (
+                  <div className="map-empty">No hotel results yet. Search first to load hotels.</div>
+                )}
+              </div>
             </div>
           </div>
         </div>

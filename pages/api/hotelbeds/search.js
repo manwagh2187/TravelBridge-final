@@ -3,6 +3,7 @@ import path from 'path';
 import { hbAvailability } from '../../../lib/hotelbeds';
 
 const CACHE_DIR = path.join(process.cwd(), 'data', 'hotelbeds-cache');
+const INDEX_FILE = path.join(CACHE_DIR, 'hotel-index.json');
 
 function safeKey(value) {
   return String(value || '')
@@ -12,10 +13,16 @@ function safeKey(value) {
     .replace(/^_+|_+$/g, '');
 }
 
+function dateKey(value) {
+  return String(value || '')
+    .trim()
+    .replace(/-/g, '_');
+}
+
 function cachePathForBody(body) {
   const destination = safeKey(body?.destination?.code || body?.destination?.name || 'unknown');
-  const checkIn = safeKey(body?.stay?.checkIn || 'nocheckin');
-  const checkOut = safeKey(body?.stay?.checkOut || 'nocheckout');
+  const checkIn = dateKey(body?.stay?.checkIn || 'nocheckin');
+  const checkOut = dateKey(body?.stay?.checkOut || 'nocheckout');
   const guests = safeKey(body?.occupancies?.[0]?.adults || '0');
   return path.join(CACHE_DIR, `${destination}_${checkIn}_${checkOut}_${guests}.csv`);
 }
@@ -63,11 +70,9 @@ function toCsv(rows) {
   ];
 
   const lines = [headers.join(',')];
-
   for (const row of rows) {
     lines.push(headers.map((h) => escapeCsv(row[h])).join(','));
   }
-
   return lines.join('\n');
 }
 
@@ -115,7 +120,6 @@ function flattenHotel(item) {
         children: rate?.children || '',
         cancellationFrom: cancellation?.from || '',
         cancellationAmount: cancellation?.amount || '',
-        raw: item,
       });
     }
   }
@@ -160,13 +164,28 @@ export default async function handler(req, res) {
 
     const results = list.flatMap(flattenHotel);
 
-    const csv = toCsv(results);
-    fs.writeFileSync(cacheFile, csv, 'utf8');
+    const hotelIndex = {};
+    for (const row of results) {
+      if (!row.hotelCode) continue;
+      if (!hotelIndex[row.hotelCode]) {
+        hotelIndex[row.hotelCode] = {
+          hotelCode: row.hotelCode,
+          hotelName: row.hotelName,
+          categoryName: row.categoryName,
+          destinationName: row.destinationName,
+          zoneName: row.zoneName,
+        };
+      }
+    }
+
+    fs.writeFileSync(cacheFile, toCsv(results), 'utf8');
+    fs.writeFileSync(INDEX_FILE, JSON.stringify(hotelIndex, null, 2), 'utf8');
 
     return res.status(200).json({
       results,
       raw: data,
       total: results.length,
+      cacheFile,
     });
   } catch (error) {
     console.error('Availability API failed:', error);
