@@ -7,36 +7,35 @@ export default function Header() {
   const { isAuthenticated, user, logout } = useAuth();
 
   return (
-    <header className="em-header">
-      <div className="container em-header-inner">
-        <Link href="/" className="em-brand">
-          <span className="em-brand-main">TravelBridge</span>
-          <span className="em-brand-sub">Bharat ka Travel App</span>
+    <header className="tb-topbar">
+      <div className="container tb-topbar-inner">
+        <Link href="/" className="tb-brand">
+          <span className="tb-brand-main">TravelBridge</span>
+          <span className="tb-brand-sub">Bharat ka Travel App</span>
         </Link>
 
-        <nav className="em-nav">
-          <Link href="/?type=hotels" className="em-link">
+        <nav className="tb-nav">
+          <Link href="/" className="tb-nav-link">
             Hotels
           </Link>
-          <Link href="/?type=homes" className="em-link">
+          <Link href="/" className="tb-nav-link">
             Hotels &amp; Homes
           </Link>
-          <Link href="/bookings" className="em-link em-bookings-link">
+          <Link href="/bookings" className="tb-nav-link tb-nav-link-active">
             My bookings
           </Link>
         </nav>
 
-        <div className="em-actions">
-          <Link href="/bookings" className="btn btn-outline em-login-btn">
-            My bookings
-          </Link>
-
+        <div className="tb-topbar-actions">
           {isAuthenticated ? (
             <>
-              <span className="em-link">Hi, {user?.name || 'Guest'}</span>
+              <Link href="/bookings" className="btn btn-outline tb-header-btn">
+                My bookings
+              </Link>
+              <span className="tb-user">Hi, {user?.name || 'Guest'}</span>
               <button
                 type="button"
-                className="btn btn-outline em-login-btn"
+                className="btn btn-outline tb-header-btn"
                 onClick={() => {
                   logout?.();
                   router.push('/');
@@ -46,7 +45,7 @@ export default function Header() {
               </button>
             </>
           ) : (
-            <Link href="/login" className="btn btn-primary em-login-btn">
+            <Link href="/login" className="btn btn-primary tb-header-btn">
               Login
             </Link>
           )}

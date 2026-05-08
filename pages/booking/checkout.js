@@ -7,6 +7,12 @@ function shortText(value, max = 90) {
   return `${text.slice(0, max)}...`;
 }
 
+function upsertBooking(existing, booking) {
+  const reference = String(booking.reference || '').trim();
+  const filtered = existing.filter((b) => String(b.reference || '').trim() !== reference);
+  return [booking, ...filtered];
+}
+
 export default function CheckoutPage() {
   const router = useRouter();
   const {
@@ -67,8 +73,15 @@ export default function CheckoutPage() {
         throw new Error(data.error || 'Booking failed');
       }
 
+      const reference =
+        data?.booking?.reference ||
+        data?.reference ||
+        data?.bookingReference ||
+        data?.clientReference ||
+        'confirmed';
+
       const bookingRecord = {
-        reference: data?.booking?.reference || data?.reference || data?.bookingReference || data?.clientReference || 'confirmed',
+        reference,
         hotelCode,
         hotelName,
         roomCode,
@@ -90,7 +103,7 @@ export default function CheckoutPage() {
 
       try {
         const existing = JSON.parse(localStorage.getItem('travelbridge-bookings') || '[]');
-        localStorage.setItem('travelbridge-bookings', JSON.stringify([bookingRecord, ...existing]));
+        localStorage.setItem('travelbridge-bookings', JSON.stringify(upsertBooking(existing, bookingRecord)));
       } catch {
         // ignore storage issues
       }

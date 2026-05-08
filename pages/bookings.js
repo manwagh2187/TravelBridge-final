@@ -1,5 +1,28 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
+
+function shortText(value, max = 90) {
+  const text = String(value || '').trim();
+  if (text.length <= max) return text;
+  return `${text.slice(0, max)}...`;
+}
+
+function getStatus(b) {
+  const hasReference = String(b?.reference || '').trim();
+  if (!hasReference) return { label: 'Pending', type: 'pending' };
+  return { label: 'Confirmed', type: 'success' };
+}
+
+function initials(name) {
+  const text = String(name || '').trim();
+  if (!text) return 'TB';
+  return text
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('');
+}
 
 export default function BookingsPage() {
   const router = useRouter();
@@ -14,6 +37,16 @@ export default function BookingsPage() {
     }
   }, []);
 
+  const uniqueBookings = useMemo(() => {
+    const seen = new Set();
+    return bookings.filter((b) => {
+      const key = String(b.reference || '').trim() || `${b.hotelName || ''}-${b.roomCode || ''}-${b.checkIn || ''}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [bookings]);
+
   return (
     <div className="tb-page">
       <section className="tb-hero tb-hero-details">
@@ -24,27 +57,100 @@ export default function BookingsPage() {
 
           <div className="details-header">
             <h1>My bookings</h1>
-            <p>Saved hotel reservations</p>
+            <p>Manage your saved reservations</p>
           </div>
 
-          <div className="hotel-rates-card">
-            <div className="hotel-rates-list">
-              {bookings.length ? (
-                bookings.map((b, idx) => (
-                  <div key={`${b.reference || 'booking'}-${idx}`} className="hotel-rate-item">
-                    <strong>{b.hotelName || 'Hotel'}</strong>
-                    <span>{b.destinationName || '-'}</span>
-                    <span>{b.roomCode || '-'}</span>
-                    <span>{b.checkIn || '-'} → {b.checkOut || '-'}</span>
-                    <span>{b.holder?.name || '-'}</span>
-                    <span>Ref: {b.reference || '-'}</span>
-                  </div>
-                ))
-              ) : (
-                <p>No bookings yet.</p>
-              )}
+          {uniqueBookings.length ? (
+            <div className="bookings-page-layout">
+              <div className="bookings-list">
+                {uniqueBookings.map((b, idx) => {
+                  const status = getStatus(b);
+                  return (
+                    <article key={`${b.reference || 'booking'}-${idx}`} className="booking-card">
+                      <div className="booking-thumb">
+                        <div className="booking-thumb-badge">{initials(b.hotelName)}</div>
+                        <div className="booking-thumb-overlay">
+                          <div className="booking-thumb-title">{b.hotelName || 'Hotel'}</div>
+                          <div className="booking-thumb-subtitle">{b.destinationName || '-'}</div>
+                        </div>
+                      </div>
+
+                      <div className="booking-card-body">
+                        <div className="booking-card-head">
+                          <div>
+                            <h3>{b.hotelName || 'Hotel'}</h3>
+                            <p>{b.destinationName || '-'}</p>
+                          </div>
+
+                          <span className={`booking-status ${status.type}`}>
+                            {status.label}
+                          </span>
+                        </div>
+
+                        <div className="booking-meta-grid">
+                          <div className="booking-meta-item">
+                            <span>Room</span>
+                            <strong>{b.roomCode || '-'}</strong>
+                          </div>
+                          <div className="booking-meta-item">
+                            <span>Stay</span>
+                            <strong>{b.checkIn || '-'} → {b.checkOut || '-'}</strong>
+                          </div>
+                          <div className="booking-meta-item">
+                            <span>Traveller</span>
+                            <strong>{b.holder?.name || '-'}</strong>
+                          </div>
+                          <div className="booking-meta-item">
+                            <span>Reference</span>
+                            <strong title={String(b.reference || '')}>{shortText(b.reference, 42) || '-'}</strong>
+                          </div>
+                        </div>
+
+                        <div className="booking-card-footer">
+                          <div className="booking-card-tags">
+                            <span>{b.guests || 0} guests</span>
+                            <span>{b.boardName || 'No board'}</span>
+                            <span>{b.nights || 1} night{Number(b.nights) > 1 ? 's' : ''}</span>
+                          </div>
+
+                          <button
+                            className="btn btn-primary"
+                            onClick={() =>
+                              router.push({
+                                pathname: '/booking/confirmed',
+                                query: {
+                                  hotelName: b.hotelName,
+                                  roomCode: b.roomCode,
+                                  rateKey: b.rateKey,
+                                  destinationName: b.destinationName,
+                                  checkIn: b.checkIn,
+                                  checkOut: b.checkOut,
+                                  holder: JSON.stringify(b.holder || {}),
+                                  reference: b.reference,
+                                  guests: b.guests,
+                                },
+                              })
+                            }
+                          >
+                            View details
+                          </button>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="booking-empty-state">
+              <div className="booking-empty-icon">🧳</div>
+              <h2>No bookings yet</h2>
+              <p>Your confirmed trips will appear here.</p>
+              <button className="btn btn-primary" onClick={() => router.push('/')}>
+                Explore hotels
+              </button>
+            </div>
+          )}
         </div>
       </section>
     </div>

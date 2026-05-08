@@ -6,6 +6,19 @@ function shortText(value, max = 90) {
   return `${text.slice(0, max)}...`;
 }
 
+function getHolderName(holder) {
+  if (!holder) return '-';
+  if (typeof holder === 'string') {
+    try {
+      const parsed = JSON.parse(holder);
+      return parsed?.name || '-';
+    } catch {
+      return holder || '-';
+    }
+  }
+  return holder?.name || '-';
+}
+
 export default function BookingConfirmedPage() {
   const router = useRouter();
   const {
@@ -18,12 +31,19 @@ export default function BookingConfirmedPage() {
     holder,
     reference,
     guests,
+    nights,
   } = router.query;
+
+  const travellerName = getHolderName(holder);
 
   return (
     <div className="tb-page">
       <section className="tb-hero tb-hero-details">
         <div className="container">
+          <button className="btn btn-outline" onClick={() => router.push('/bookings')} style={{ marginBottom: 20 }}>
+            ← My bookings
+          </button>
+
           <div className="booking-confirm-hero">
             <div className="booking-confirm-icon">✓</div>
             <div>
@@ -56,7 +76,7 @@ export default function BookingConfirmedPage() {
                   </div>
                   <div className="booking-confirm-item">
                     <strong>Traveller</strong>
-                    <span>{holder?.name || '-'}</span>
+                    <span>{travellerName}</span>
                   </div>
                   <div className="booking-confirm-item">
                     <strong>Rate key</strong>
@@ -87,6 +107,10 @@ export default function BookingConfirmedPage() {
                 <div className="booking-summary-line">
                   <span>Guests</span>
                   <strong>{guests || '-'}</strong>
+                </div>
+                <div className="booking-summary-line">
+                  <span>Nights</span>
+                  <strong>{nights || '-'}</strong>
                 </div>
 
                 <button className="btn btn-primary booking-summary-btn" onClick={() => router.push('/bookings')}>
