@@ -137,7 +137,6 @@ export default function Home() {
   const rateRows = useMemo(() => (Array.isArray(data?.results) ? data.results : []), [data]);
   const hotels = useMemo(() => groupByHotel(rateRows), [rateRows]);
 
-  const total = hotels.length;
   const apiError = data?.error || '';
   const quotaExceeded = String(apiError).toLowerCase().includes('quota exceeded');
 
@@ -182,6 +181,7 @@ export default function Home() {
     return list;
   }, [hotels, textSearch, minRating, maxPrice, sortBy]);
 
+  const total = filteredHotels.length;
   const bestDealHotel = useMemo(() => {
     if (!filteredHotels.length) return null;
     return [...filteredHotels].sort((a, b) => toNumber(a?.minPrice) - toNumber(b?.minPrice))[0];
@@ -246,11 +246,6 @@ export default function Home() {
     }
 
     setError('');
-    setSortBy('best');
-    setMinRating(0);
-    setMaxPrice('');
-    setTextSearch('');
-    setSelectedHotel(null);
     setCurrentPage(1);
 
     const destinationCode = DESTINATION_CODES[destination];
@@ -286,14 +281,19 @@ export default function Home() {
         checkIn,
         checkOut,
         guests,
-        sortBy: 'best',
-        minRating: 0,
-        maxPrice: '',
-        textSearch: '',
+        sortBy,
+        minRating,
+        maxPrice,
+        textSearch,
       })
     );
 
     resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function toggleStarFilter(stars) {
+    setMinRating((current) => (current === stars ? 0 : stars));
+    setCurrentPage(1);
   }
 
   return (
@@ -454,9 +454,30 @@ export default function Home() {
 
           <div className="side-card">
             <div className="side-title">Popular filters</div>
-            <label><input type="checkbox" /> 3+ stars</label>
-            <label><input type="checkbox" /> 4+ stars</label>
-            <label><input type="checkbox" /> Best deals</label>
+            <label>
+              <input
+                type="checkbox"
+                checked={minRating === 3}
+                onChange={() => toggleStarFilter(3)}
+              />{' '}
+              3+ stars
+            </label>
+            <label>
+              <input
+                type="checkbox"
+                checked={minRating === 4}
+                onChange={() => toggleStarFilter(4)}
+              />{' '}
+              4+ stars
+            </label>
+            <label>
+              <input
+                type="checkbox"
+                checked={minRating === 5}
+                onChange={() => toggleStarFilter(5)}
+              />{' '}
+              5+ stars
+            </label>
           </div>
 
           <div className="side-card">

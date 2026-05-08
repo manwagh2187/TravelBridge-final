@@ -1,0 +1,422 @@
+{
+  "59410": {
+    "hotelCode": 59410,
+    "hotelName": "The Suryaa New Delhi",
+    "categoryName": "5 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Delhi"
+  },
+  "82378": {
+    "hotelCode": 82378,
+    "hotelName": "The Park New Delhi",
+    "categoryName": "5 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Delhi"
+  },
+  "89021": {
+    "hotelCode": 89021,
+    "hotelName": "The Metropolitan Hotel & Spa",
+    "categoryName": "5 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Delhi"
+  },
+  "109329": {
+    "hotelCode": 109329,
+    "hotelName": "Hotel Sunstar Residency",
+    "categoryName": "3 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Delhi"
+  },
+  "109330": {
+    "hotelCode": 109330,
+    "hotelName": "Hotel Sunstar Grand",
+    "categoryName": "3 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Delhi"
+  },
+  "109332": {
+    "hotelCode": 109332,
+    "hotelName": "Hotel Sunstar Heritage",
+    "categoryName": "3 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Delhi"
+  },
+  "109334": {
+    "hotelCode": 109334,
+    "hotelName": "The Suncourt Hotel Yatri",
+    "categoryName": "3 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Delhi"
+  },
+  "112029": {
+    "hotelCode": 112029,
+    "hotelName": "Royal Plaza New Delhi",
+    "categoryName": "4 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Delhi"
+  },
+  "112047": {
+    "hotelCode": 112047,
+    "hotelName": "Mosaic Original, Noida",
+    "categoryName": "4 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Noida"
+  },
+  "114895": {
+    "hotelCode": 114895,
+    "hotelName": "City Park",
+    "categoryName": "4 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Delhi"
+  },
+  "128558": {
+    "hotelCode": 128558,
+    "hotelName": "Country Inn & Suites by Radisson, Sahibabad",
+    "categoryName": "5 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Ghaziabad"
+  },
+  "136953": {
+    "hotelCode": 136953,
+    "hotelName": "Udman Hotel Panchshila Park",
+    "categoryName": "4 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Delhi"
+  },
+  "137680": {
+    "hotelCode": 137680,
+    "hotelName": "juSTa Gurgaon",
+    "categoryName": "4 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Gurgaon"
+  },
+  "140339": {
+    "hotelCode": 140339,
+    "hotelName": "Savoy Suites Noida",
+    "categoryName": "4 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Noida"
+  },
+  "141291": {
+    "hotelCode": 141291,
+    "hotelName": "Skycity Hotel Gurgaon",
+    "categoryName": "4 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Gurgaon"
+  },
+  "156465": {
+    "hotelCode": 156465,
+    "hotelName": "Radisson Blu Hotel Greater Noida",
+    "categoryName": "5 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Noida"
+  },
+  "178092": {
+    "hotelCode": 178092,
+    "hotelName": "Shervani Nehru Place",
+    "categoryName": "4 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Delhi"
+  },
+  "182761": {
+    "hotelCode": 182761,
+    "hotelName": "bloomrooms @ Link Road",
+    "categoryName": "3 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Delhi"
+  },
+  "184692": {
+    "hotelCode": 184692,
+    "hotelName": "Le Roi Delhi @ New Delhi Railway Station",
+    "categoryName": "3 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Delhi"
+  },
+  "285815": {
+    "hotelCode": 285815,
+    "hotelName": "Hotel Luxe Opera NH8 – 7km from IGI Airport Delhi",
+    "categoryName": "4 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Delhi"
+  },
+  "286184": {
+    "hotelCode": 286184,
+    "hotelName": "Broadway An Alivaa Collection Hotel",
+    "categoryName": "3 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Delhi"
+  },
+  "286849": {
+    "hotelCode": 286849,
+    "hotelName": "Hotel Godwin Deluxe",
+    "categoryName": "3 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Delhi"
+  },
+  "287591": {
+    "hotelCode": 287591,
+    "hotelName": "Ahuja Residency Park Lane",
+    "categoryName": "3 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Gurgaon"
+  },
+  "369457": {
+    "hotelCode": 369457,
+    "hotelName": "Hotel Grand Godwin",
+    "categoryName": "2 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Delhi"
+  },
+  "435818": {
+    "hotelCode": 435818,
+    "hotelName": "Pride Plaza Aerocity New Delhi",
+    "categoryName": "4 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Delhi"
+  },
+  "471081": {
+    "hotelCode": 471081,
+    "hotelName": "bloomrooms @ New Delhi Railway Station",
+    "categoryName": "3 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Delhi"
+  },
+  "491161": {
+    "hotelCode": 491161,
+    "hotelName": "Ginger Hotel Noida City Center",
+    "categoryName": "3 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Noida"
+  },
+  "495982": {
+    "hotelCode": 495982,
+    "hotelName": "Airport Hotel Grand",
+    "categoryName": "3 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Delhi"
+  },
+  "645892": {
+    "hotelCode": 645892,
+    "hotelName": "bloomrooms @ Janpath",
+    "categoryName": "3 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Delhi"
+  },
+  "663647": {
+    "hotelCode": 663647,
+    "hotelName": "Hotel Sky View",
+    "categoryName": "3 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Delhi"
+  },
+  "671022": {
+    "hotelCode": 671022,
+    "hotelName": "Hotel Lohmod Delhi Airport",
+    "categoryName": "4 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Delhi"
+  },
+  "684988": {
+    "hotelCode": 684988,
+    "hotelName": "Hotel Diplomat",
+    "categoryName": "4 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Delhi"
+  },
+  "700373": {
+    "hotelCode": 700373,
+    "hotelName": "Beacon Hotel Nirman Vihar New Delhi",
+    "categoryName": "3 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Delhi"
+  },
+  "700396": {
+    "hotelCode": 700396,
+    "hotelName": "Ahuja Residency Sunder Nagar",
+    "categoryName": "3 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Delhi"
+  },
+  "702785": {
+    "hotelCode": 702785,
+    "hotelName": "Savoy Suites Greater Noida",
+    "categoryName": "4 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Noida"
+  },
+  "739081": {
+    "hotelCode": 739081,
+    "hotelName": "Radisson Blu Towers Kaushambi Delhi NCR",
+    "categoryName": "5 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Ghaziabad"
+  },
+  "753903": {
+    "hotelCode": 753903,
+    "hotelName": "STEPiNN - Ess Kay Ess Villa",
+    "categoryName": "3 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Gurgaon"
+  },
+  "769245": {
+    "hotelCode": 769245,
+    "hotelName": "The Atara",
+    "categoryName": "3 STARS AND A HALF",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Gurgaon"
+  },
+  "826682": {
+    "hotelCode": 826682,
+    "hotelName": "Ahuja Residency Cyber City I",
+    "categoryName": "3 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Gurgaon"
+  },
+  "888303": {
+    "hotelCode": 888303,
+    "hotelName": "Enkay Residency V Block-Cyber City",
+    "categoryName": "3 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Gurgaon"
+  },
+  "894333": {
+    "hotelCode": 894333,
+    "hotelName": "Savoy Suites Manesar",
+    "categoryName": "4 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Gurgaon"
+  },
+  "900821": {
+    "hotelCode": 900821,
+    "hotelName": "Regenta Central Noida",
+    "categoryName": "4 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Noida"
+  },
+  "927587": {
+    "hotelCode": 927587,
+    "hotelName": "Regenta Suites Sector 49 Gurugram",
+    "categoryName": "WITHOUT OFFICIAL CATEGORY",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Gurgaon"
+  },
+  "943811": {
+    "hotelCode": 943811,
+    "hotelName": "Lime Tree Hotel 32nd Avenue",
+    "categoryName": "3 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Gurgaon"
+  },
+  "953972": {
+    "hotelCode": 953972,
+    "hotelName": "Bloom Boutique Gk-1",
+    "categoryName": "WITHOUT OFFICIAL CATEGORY",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Delhi"
+  },
+  "958511": {
+    "hotelCode": 958511,
+    "hotelName": "Le Roi Express, Paharganj",
+    "categoryName": "3 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Delhi"
+  },
+  "988617": {
+    "hotelCode": 988617,
+    "hotelName": "Red Maple Bed & Breakfast",
+    "categoryName": "BOUTIQUE",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Delhi"
+  },
+  "989905": {
+    "hotelCode": 989905,
+    "hotelName": "Udman Hotel Gurugram",
+    "categoryName": "4 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Gurgaon"
+  },
+  "989919": {
+    "hotelCode": 989919,
+    "hotelName": "Udman Hotel Chattarpur",
+    "categoryName": "4 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Delhi"
+  },
+  "990056": {
+    "hotelCode": 990056,
+    "hotelName": "Udman Hotel Greater Noida",
+    "categoryName": "4 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Noida"
+  },
+  "992412": {
+    "hotelCode": 992412,
+    "hotelName": "Goldenkeys Inn",
+    "categoryName": "3 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Delhi"
+  },
+  "994322": {
+    "hotelCode": 994322,
+    "hotelName": "NUO By juSTa",
+    "categoryName": "4 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Delhi"
+  },
+  "997703": {
+    "hotelCode": 997703,
+    "hotelName": "Hotel Noida Dreamz",
+    "categoryName": "3 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Noida"
+  },
+  "1000270": {
+    "hotelCode": 1000270,
+    "hotelName": "Hotel Limon Near Sector 29, Gurgaon",
+    "categoryName": "4 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Gurgaon"
+  },
+  "1003514": {
+    "hotelCode": 1003514,
+    "hotelName": "Jyoti Mahal A Heritage Hotel",
+    "categoryName": "4 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Delhi"
+  },
+  "1004265": {
+    "hotelCode": 1004265,
+    "hotelName": "Shanti Villa",
+    "categoryName": "3 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Delhi"
+  },
+  "1021655": {
+    "hotelCode": 1021655,
+    "hotelName": "Belvedere Suites",
+    "categoryName": "3 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Noida"
+  },
+  "1028400": {
+    "hotelCode": 1028400,
+    "hotelName": "Hotel Amahi Inn Sector 30",
+    "categoryName": "3 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Gurgaon"
+  },
+  "1095731": {
+    "hotelCode": 1095731,
+    "hotelName": "Qotel Signature - Golf Course Road",
+    "categoryName": "4 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Gurgaon"
+  },
+  "1095766": {
+    "hotelCode": 1095766,
+    "hotelName": "Lime Tree Hotel - Near Medanta Hospital",
+    "categoryName": "4 STARS",
+    "destinationName": "Delhi and NCR",
+    "zoneName": "Gurgaon"
+  }
+}

@@ -24,6 +24,19 @@ function initials(name) {
     .join('');
 }
 
+function uniqueByReference(bookings) {
+  const seen = new Set();
+  return bookings.filter((b) => {
+    const key =
+      String(b.reference || '').trim() ||
+      `${b.hotelName || ''}-${b.roomCode || ''}-${b.checkIn || ''}-${b.checkOut || ''}`;
+
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 export default function BookingsPage() {
   const router = useRouter();
   const [bookings, setBookings] = useState([]);
@@ -37,15 +50,7 @@ export default function BookingsPage() {
     }
   }, []);
 
-  const uniqueBookings = useMemo(() => {
-    const seen = new Set();
-    return bookings.filter((b) => {
-      const key = String(b.reference || '').trim() || `${b.hotelName || ''}-${b.roomCode || ''}-${b.checkIn || ''}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-  }, [bookings]);
+  const uniqueBookings = useMemo(() => uniqueByReference(bookings), [bookings]);
 
   return (
     <div className="tb-page">
@@ -57,7 +62,7 @@ export default function BookingsPage() {
 
           <div className="details-header">
             <h1>My bookings</h1>
-            <p>Manage your saved reservations</p>
+            <p>Manage your confirmed trips and reservation history</p>
           </div>
 
           {uniqueBookings.length ? (
@@ -65,6 +70,7 @@ export default function BookingsPage() {
               <div className="bookings-list">
                 {uniqueBookings.map((b, idx) => {
                   const status = getStatus(b);
+
                   return (
                     <article key={`${b.reference || 'booking'}-${idx}`} className="booking-card">
                       <div className="booking-thumb">
@@ -76,15 +82,17 @@ export default function BookingsPage() {
                       </div>
 
                       <div className="booking-card-body">
-                        <div className="booking-card-head">
+                        <div className="booking-card-top">
                           <div>
+                            <span className={`booking-status ${status.type}`}>{status.label}</span>
                             <h3>{b.hotelName || 'Hotel'}</h3>
                             <p>{b.destinationName || '-'}</p>
                           </div>
 
-                          <span className={`booking-status ${status.type}`}>
-                            {status.label}
-                          </span>
+                          <div className="booking-ref-box">
+                            <span>Reference</span>
+                            <strong title={String(b.reference || '')}>{shortText(b.reference, 24) || '-'}</strong>
+                          </div>
                         </div>
 
                         <div className="booking-meta-grid">
@@ -101,16 +109,20 @@ export default function BookingsPage() {
                             <strong>{b.holder?.name || '-'}</strong>
                           </div>
                           <div className="booking-meta-item">
-                            <span>Reference</span>
-                            <strong title={String(b.reference || '')}>{shortText(b.reference, 42) || '-'}</strong>
+                            <span>Guests</span>
+                            <strong>{b.guests || '-'}</strong>
                           </div>
                         </div>
 
+                        <div className="booking-card-tags">
+                          <span>{b.boardName || 'No board'}</span>
+                          <span>{b.nights || 1} night{Number(b.nights) > 1 ? 's' : ''}</span>
+                          <span>{b.holder?.email || 'No email'}</span>
+                        </div>
+
                         <div className="booking-card-footer">
-                          <div className="booking-card-tags">
-                            <span>{b.guests || 0} guests</span>
-                            <span>{b.boardName || 'No board'}</span>
-                            <span>{b.nights || 1} night{Number(b.nights) > 1 ? 's' : ''}</span>
+                          <div className="booking-fineprint">
+                            Saved on {b.createdAt ? new Date(b.createdAt).toLocaleDateString() : '—'}
                           </div>
 
                           <button
@@ -128,6 +140,7 @@ export default function BookingsPage() {
                                   holder: JSON.stringify(b.holder || {}),
                                   reference: b.reference,
                                   guests: b.guests,
+                                  nights: b.nights,
                                 },
                               })
                             }

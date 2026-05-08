@@ -29,9 +29,6 @@ export default function Header() {
         <div className="tb-topbar-actions">
           {isAuthenticated ? (
             <>
-              <Link href="/bookings" className="btn btn-outline tb-header-btn">
-                My bookings
-              </Link>
               <span className="tb-user">Hi, {user?.name || 'Guest'}</span>
               <button
                 type="button"
