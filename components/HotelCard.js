@@ -6,6 +6,18 @@ function formatPrice(value) {
   return n.toFixed(2);
 }
 
+function parseStars(categoryName) {
+  const match = String(categoryName || '').match(/(\d+)/);
+  return match ? Number(match[1]) : 0;
+}
+
+function reviewLabel(stars) {
+  if (stars >= 5) return 'Excellent';
+  if (stars >= 4) return 'Very good';
+  if (stars >= 3) return 'Good';
+  return 'Rated';
+}
+
 export default function HotelCard({ hotel, query, selected = false, onSelect }) {
   const router = useRouter();
   const cheapest = hotel?.cheapestRate || hotel?.rates?.[0] || hotel;
@@ -19,7 +31,8 @@ export default function HotelCard({ hotel, query, selected = false, onSelect }) 
   const boardName = cheapest?.boardName || '';
   const rateType = cheapest?.rateType || '';
   const rateCount = hotel?.rateCount || 0;
-
+  const stars = parseStars(hotel?.categoryName);
+  const reviewText = reviewLabel(stars);
   const initial = (title || 'H').charAt(0).toUpperCase();
 
   function goToDetails() {
@@ -58,14 +71,24 @@ export default function HotelCard({ hotel, query, selected = false, onSelect }) 
       <div className="hotel-thumb">
         <div className="hotel-thumb-badge">{hotel?.categoryName || 'Hotel'}</div>
         <div className="hotel-thumb-letter">{initial}</div>
+        <div className="hotel-thumb-score">{stars ? `${stars}.0` : '8.5'}</div>
       </div>
 
       <div className="hotel-body">
         <div className="hotel-topline">
           <div>
-            <h3>{title}</h3>
+            <div className="hotel-title-row">
+              <h3>{title}</h3>
+              <span className="hotel-deal-label">Deal</span>
+            </div>
             <p className="location">{location}</p>
+            <div className="hotel-review-row">
+              <span className="hotel-review-score">{reviewText}</span>
+              <span className="hotel-review-meta">{rateCount || 1} rate{rateCount === 1 ? '' : 's'}</span>
+              <span className="hotel-review-meta">{stars ? `${stars} stars` : 'Standard'}</span>
+            </div>
           </div>
+
           <span className="rating">{hotel?.categoryName || ''}</span>
         </div>
 
@@ -73,11 +96,10 @@ export default function HotelCard({ hotel, query, selected = false, onSelect }) 
           {roomName ? <span>{roomName}</span> : null}
           {boardName ? <span>{boardName}</span> : null}
           {rateType ? <span>{rateType}</span> : null}
-          {rateCount ? <span>{rateCount} rates</span> : null}
         </div>
 
         <div className="hotel-footer">
-          <div>
+          <div className="hotel-price-box">
             <div className="price-label">From</div>
             <div className="price">
               {currency} {formatPrice(price)}
@@ -85,9 +107,14 @@ export default function HotelCard({ hotel, query, selected = false, onSelect }) 
             <div className="per-night">per stay</div>
           </div>
 
-          <button type="button" className="btn btn-primary" onClick={goToDetails}>
-            View details
-          </button>
+          <div className="hotel-footer-actions">
+            <button type="button" className="btn btn-outline hotel-map-btn" onClick={onSelect}>
+              View on map
+            </button>
+            <button type="button" className="btn btn-primary" onClick={goToDetails}>
+              View details
+            </button>
+          </div>
         </div>
       </div>
     </article>

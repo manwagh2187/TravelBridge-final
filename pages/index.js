@@ -67,6 +67,11 @@ function groupByHotel(rows) {
   return Array.from(map.values());
 }
 
+function buildMapLabel(hotel, fallbackDestination) {
+  if (!hotel) return fallbackDestination;
+  return hotel.hotelName || hotel.zoneName || hotel.destinationName || fallbackDestination;
+}
+
 export default function Home() {
   const router = useRouter();
   const { isAuthenticated, loading } = useAuth();
@@ -200,7 +205,7 @@ export default function Home() {
   const totalPages = Math.max(1, Math.ceil(displayedHotels.length / PAGE_SIZE));
   const pagedHotels = displayedHotels.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
   const featuredHotel = bestDealHotel || topRatedHotel;
-  const mapLabel = selectedHotel?.hotelName || featuredHotel?.hotelName || destination;
+  const mapLabel = buildMapLabel(selectedHotel || featuredHotel, destination);
 
   const destinationSuggestions = useMemo(() => {
     const q = destination.trim().toLowerCase();
@@ -455,44 +460,14 @@ export default function Home() {
           <div className="side-card">
             <div className="side-title">Popular filters</div>
             <label>
-              <input
-                type="checkbox"
-                checked={minRating === 3}
-                onChange={() => toggleStarFilter(3)}
-              />{' '}
-              3+ stars
+              <input checked={minRating === 3} type="checkbox" onChange={() => toggleStarFilter(3)} /> 3+ stars
             </label>
             <label>
-              <input
-                type="checkbox"
-                checked={minRating === 4}
-                onChange={() => toggleStarFilter(4)}
-              />{' '}
-              4+ stars
+              <input checked={minRating === 4} type="checkbox" onChange={() => toggleStarFilter(4)} /> 4+ stars
             </label>
             <label>
-              <input
-                type="checkbox"
-                checked={minRating === 5}
-                onChange={() => toggleStarFilter(5)}
-              />{' '}
-              5+ stars
+              <input checked={minRating === 5} type="checkbox" onChange={() => toggleStarFilter(5)} /> 5+ stars
             </label>
-          </div>
-
-          <div className="side-card">
-            <div className="side-title">Best deal</div>
-            {featuredHotel ? (
-              <div className="mini-deal">
-                <strong>{featuredHotel.hotelName}</strong>
-                <span>{featuredHotel.destinationName || featuredHotel.zoneName || destination}</span>
-                <div className="mini-price">
-                  {featuredHotel.currency || 'INR'} {featuredHotel.minPrice || 0}
-                </div>
-              </div>
-            ) : (
-              <p className="muted">Search to see best deals.</p>
-            )}
           </div>
         </aside>
 
@@ -519,6 +494,37 @@ export default function Home() {
             <span className="toolbar-pill">Hotels</span>
             <span className="toolbar-pill">Deals</span>
           </div>
+
+         {filteredHotels.length ? (
+  <div className="featured-deals-strip">
+    {[...filteredHotels].slice(0, 3).map((hotel) => (
+      <button
+        key={hotel.hotelCode}
+        type="button"
+        className={`featured-deal-card ${selectedHotel?.hotelCode === hotel.hotelCode ? 'active' : ''}`}
+        onClick={() => setSelectedHotel(hotel)}
+      >
+        <div className="featured-deal-badge">
+          {parseStars(hotel?.categoryName) ? `${parseStars(hotel.categoryName)} STAR${parseStars(hotel.categoryName) > 1 ? 'S' : ''}` : 'HOTEL'}
+        </div>
+
+        <div className="featured-deal-title">{hotel.hotelName}</div>
+        <div className="featured-deal-subtitle">
+          {hotel.destinationName || hotel.zoneName || destination}
+        </div>
+
+        <div className="featured-deal-price">
+          {hotel.currency || 'INR'} {hotel.minPrice || 0}
+        </div>
+
+        <div className="featured-deal-footer">
+          <span>{hotel.cheapestRate?.boardName || 'No board'}</span>
+          <span>View on map</span>
+        </div>
+      </button>
+    ))}
+  </div>
+) : null}
 
           {searchBody && isLoading ? <p>Loading hotels...</p> : null}
 
