@@ -18,6 +18,20 @@ function reviewLabel(stars) {
   return 'Rated';
 }
 
+function parseImages(hotel) {
+  try {
+    if (hotel?.image) return [hotel.image];
+    if (Array.isArray(hotel?.images)) return hotel.images.filter(Boolean);
+    if (typeof hotel?.imagesJson === 'string') {
+      const parsed = JSON.parse(hotel.imagesJson);
+      if (Array.isArray(parsed)) return parsed.filter(Boolean);
+    }
+  } catch {
+    // ignore
+  }
+  return [];
+}
+
 export default function HotelCard({ hotel, query, selected = false, onSelect }) {
   const router = useRouter();
   const cheapest = hotel?.cheapestRate || hotel?.rates?.[0] || hotel;
@@ -34,6 +48,8 @@ export default function HotelCard({ hotel, query, selected = false, onSelect }) 
   const stars = parseStars(hotel?.categoryName);
   const reviewText = reviewLabel(stars);
   const initial = (title || 'H').charAt(0).toUpperCase();
+  const images = parseImages(hotel);
+  const heroImage = images[0] || '';
 
   function goToDetails(e) {
     e?.stopPropagation?.();
@@ -48,6 +64,8 @@ export default function HotelCard({ hotel, query, selected = false, onSelect }) 
           zoneName: hotel?.zoneName || '',
           categoryName: hotel?.categoryName || '',
           rates: hotel?.rates || [],
+          image: heroImage,
+          imagesJson: JSON.stringify(images),
         })
       );
     } catch {
@@ -76,10 +94,20 @@ export default function HotelCard({ hotel, query, selected = false, onSelect }) 
       tabIndex={0}
     >
       <div className="hotel-thumb">
+        {heroImage ? (
+          <img
+            src={heroImage}
+            alt={title}
+            className="hotel-thumb-image"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }}
+          />
+        ) : null}
         <div className="hotel-thumb-badge">
           {stars ? `${stars} STAR${stars > 1 ? 'S' : ''}` : 'HOTEL'}
         </div>
-        <div className="hotel-thumb-letter">{initial}</div>
+        {!heroImage ? <div className="hotel-thumb-letter">{initial}</div> : null}
         <div className="hotel-thumb-score">{stars ? `${stars}.0` : '8.5'}</div>
       </div>
 

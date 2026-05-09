@@ -1,8 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
+import dynamic from 'next/dynamic';
 import { useAuth } from '../context/AuthContext';
 import HotelCard from '../components/HotelCard';
+
+const MapContainer = dynamic(() => import('react-leaflet').then((m) => m.MapContainer), { ssr: false });
+const TileLayer = dynamic(() => import('react-leaflet').then((m) => m.TileLayer), { ssr: false });
+const Marker = dynamic(() => import('react-leaflet').then((m) => m.Marker), { ssr: false });
+const Popup = dynamic(() => import('react-leaflet').then((m) => m.Popup), { ssr: false });
 
 const DESTINATIONS = ['Mumbai', 'Delhi', 'Bengaluru', 'Chennai', 'Hyderabad', 'Kolkata', 'Goa', 'Jaipur'];
 
@@ -68,19 +74,6 @@ function groupByHotel(rows) {
   return Array.from(map.values());
 }
 
-function buildMapPoints(hotels) {
-  return hotels.slice(0, 8).map((hotel, index) => ({
-    ...hotel,
-    left: 10 + ((index * 13) % 76),
-    top: 12 + ((index * 17) % 68),
-  }));
-}
-
-function buildMapLabel(hotel, fallbackDestination) {
-  if (!hotel) return fallbackDestination;
-  return hotel.hotelName || hotel.zoneName || hotel.destinationName || fallbackDestination;
-}
-
 function hasFreeCancellation(hotel) {
   const text = String(hotel?.cheapestRate?.rateType || hotel?.cheapestRate?.paymentType || hotel?.cheapestRate?.packaging || '').toLowerCase();
   return text.includes('free cancellation') || text.includes('free cancel') || text.includes('cancel') || text.includes('refundable');
@@ -93,7 +86,7 @@ function isBookable(hotel) {
 
 function getFilterSummary(filters) {
   const labels = [];
-  if (filters.starThreshold) labels.push(filters.starThreshold === 5 ? '5 stars' : `${filters.starThreshold}+ stars`);
+  if (filters.starThreshold) labels.push(`${filters.starThreshold} stars`);
   if (filters.onlyDeal) labels.push('Deal only');
   if (filters.onlyBookable) labels.push('Bookable only');
   if (filters.onlyRoomOnly) labels.push('Room only');
@@ -101,6 +94,43 @@ function getFilterSummary(filters) {
   if (filters.maxPrice !== '') labels.push(`Under ${filters.maxPrice}`);
   if (filters.textSearch.trim()) labels.push(`Search: ${filters.textSearch.trim()}`);
   return labels;
+}
+
+function getHotelLatLng(hotel, index) {
+  const latBase = 28.6139;
+  const lngBase = 77.2090;
+  const spread = 0.18;
+  const lat = hotel?.latitude ? Number(hotel.latitude) : latBase + ((index % 5) - 2) * spread;
+  const lng = hotel?.longitude ? Number(hotel.longitude) : lngBase + (Math.floor(index / 5) - 1) * spread;
+  return [lat, lng];
+}
+
+function scrollHotelCardIntoView(hotelCode) {
+  if (typeof document === 'undefined') return;
+  const el = document.querySelector(`[data-hotel-code="${hotelCode}"]`);
+  el?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+}
+
+function createIcon(selected = false) {
+  if (typeof window === 'undefined') return undefined;
+  const Lleaflet = require('leaflet');
+  return Lleaflet.divIcon({
+    className: '',
+    html: `
+      <div style="
+        width: ${selected ? 34 : 28}px;
+        height: ${selected ? 34 : 28}px;
+        border-radius: 999px;
+        background: ${selected ? '#2563eb' : '#ec4899'};
+        border: 3px solid white;
+        box-shadow: 0 8px 18px rgba(0,0,0,0.18);
+        transform: ${selected ? 'scale(1.08)' : 'scale(1)'};
+        transition: transform 0.15s ease;
+      "></div>
+    `,
+    iconSize: [34, 34],
+    iconAnchor: [17, 17],
+  });
 }
 
 export default function Home() {
@@ -126,6 +156,11 @@ export default function Home() {
   const [onlyBookable, setOnlyBookable] = useState(false);
   const [onlyRoomOnly, setOnlyRoomOnly] = useState(false);
   const [onlyFreeCancellation, setOnlyFreeCancellation] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const query = useMemo(
     () => ({
@@ -198,11 +233,10 @@ export default function Home() {
       );
     }
 
-    // Exact star logic
     if (starThreshold === 3) {
-      list = list.filter((hotel) => parseStars(hotel?.categoryName) >= 3);
+      list = list.filter((hotel) => parseStars(hotel?.categoryName) === 3);
     } else if (starThreshold === 4) {
-      list = list.filter((hotel) => parseStars(hotel?.categoryName) >= 4);
+      list = list.filter((hotel) => parseStars(hotel?.categoryName) === 4);
     } else if (starThreshold === 5) {
       list = list.filter((hotel) => parseStars(hotel?.categoryName) === 5);
     }
@@ -250,27 +284,34 @@ export default function Home() {
   }, [hotels, textSearch, starThreshold, maxPrice, sortBy, onlyDeal, onlyBookable, onlyRoomOnly, onlyFreeCancellation]);
 
   const total = filteredHotels.length;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const pagedHotels = filteredHotels.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   const bestDealHotel = useMemo(() => {
     if (!filteredHotels.length) return null;
     return [...filteredHotels].sort((a, b) => toNumber(a?.minPrice) - toNumber(b?.minPrice))[0];
   }, [filteredHotels]);
 
-  const topRatedHotel = useMemo(() => {
-    if (!filteredHotels.length) return null;
-    return [...filteredHotels].sort((a, b) => {
-      const diff = parseStars(b?.categoryName) - parseStars(a?.categoryName);
-      if (diff !== 0) return diff;
-      return toNumber(a?.minPrice) - toNumber(b?.minPrice);
-    })[0];
+  const mapCenter = useMemo(() => {
+    if (destination === 'Delhi') return [28.6139, 77.2090];
+    if (destination === 'Mumbai') return [19.076, 72.8777];
+    if (destination === 'Bengaluru') return [12.9716, 77.5946];
+    if (destination === 'Chennai') return [13.0827, 80.2707];
+    if (destination === 'Hyderabad') return [17.385, 78.4867];
+    if (destination === 'Kolkata') return [22.5726, 88.3639];
+    if (destination === 'Goa') return [15.2993, 74.124];
+    if (destination === 'Jaipur') return [26.9124, 75.7873];
+    return [28.6139, 77.2090];
+  }, [destination]);
+
+  const mapHotels = useMemo(() => {
+    return filteredHotels.slice(0, 30).map((hotel, index) => ({
+      ...hotel,
+      coords: getHotelLatLng(hotel, index),
+    }));
   }, [filteredHotels]);
 
-  const displayedHotels = filteredHotels;
-  const totalPages = Math.max(1, Math.ceil(displayedHotels.length / PAGE_SIZE));
-  const pagedHotels = displayedHotels.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
-  const featuredHotel = bestDealHotel || topRatedHotel;
-  const mapLabel = buildMapLabel(selectedHotel || featuredHotel, destination);
-  const mapPoints = useMemo(() => buildMapPoints(displayedHotels), [displayedHotels]);
+  const mapLabel = selectedHotel?.hotelName || bestDealHotel?.hotelName || destination;
 
   const destinationSuggestions = useMemo(() => {
     const q = destination.trim().toLowerCase();
@@ -289,29 +330,6 @@ export default function Home() {
       setCurrentPage(totalPages);
     }
   }, [currentPage, totalPages]);
-
-  useEffect(() => {
-    if (searchBody) {
-      sessionStorage.setItem(
-        'travelbridge-search',
-        JSON.stringify({
-          searchBody,
-          destination,
-          checkIn,
-          checkOut,
-          guests,
-          sortBy,
-          starThreshold,
-          maxPrice,
-          textSearch,
-          onlyDeal,
-          onlyBookable,
-          onlyRoomOnly,
-          onlyFreeCancellation,
-        })
-      );
-    }
-  }, [searchBody, destination, checkIn, checkOut, guests, sortBy, starThreshold, maxPrice, textSearch, onlyDeal, onlyBookable, onlyRoomOnly, onlyFreeCancellation]);
 
   function handleSearch() {
     if (!loading && !isAuthenticated) {
@@ -459,35 +477,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="tb-offers">
-            <div className="tb-offers-head">
-              <h2>Exclusive Offers</h2>
-            </div>
-
-            <div className="tb-offers-strip">
-              <div className="tb-offer-card blue">
-                <strong>Huge discounts on bookings</strong>
-                <span>Use code: TRAVEL</span>
-              </div>
-              <div className="tb-offer-card indigo">
-                <strong>No convenience fee</strong>
-                <span>Save more on every booking</span>
-              </div>
-              <div className="tb-offer-card sky">
-                <strong>Best hotel deals</strong>
-                <span>Bundle and save</span>
-              </div>
-            </div>
-          </div>
-
           {error ? <div className="search-error">{error}</div> : null}
-        </div>
-      </section>
-
-      <section className="tb-promo">
-        <div className="container tb-promo-inner">
-          <strong>Looking for instant coupons?</strong>
-          <span>Check out today&apos;s discounts and destination offers</span>
         </div>
       </section>
 
@@ -544,96 +534,28 @@ export default function Home() {
 
           <div className="side-card">
             <div className="side-title">Popular filters</div>
-
             <div className="star-filter-group">
-              <button
-                type="button"
-                className={`star-filter-btn ${starThreshold === 0 ? 'active' : ''}`}
-                onClick={() => {
-                  setStarThreshold(0);
-                  setCurrentPage(1);
-                }}
-              >
-                Any
-              </button>
-
-              <button
-                type="button"
-                className={`star-filter-btn ${starThreshold === 3 ? 'active' : ''}`}
-                onClick={() => {
-                  setStarThreshold(3);
-                  setCurrentPage(1);
-                }}
-              >
-                3+ stars
-              </button>
-
-              <button
-                type="button"
-                className={`star-filter-btn ${starThreshold === 4 ? 'active' : ''}`}
-                onClick={() => {
-                  setStarThreshold(4);
-                  setCurrentPage(1);
-                }}
-              >
-                4+ stars
-              </button>
-
-              <button
-                type="button"
-                className={`star-filter-btn ${starThreshold === 5 ? 'active' : ''}`}
-                onClick={() => {
-                  setStarThreshold(5);
-                  setCurrentPage(1);
-                }}
-              >
-                5 stars
-              </button>
+              <button type="button" className={`star-filter-btn ${starThreshold === 0 ? 'active' : ''}`} onClick={() => { setStarThreshold(0); setCurrentPage(1); }}>Any</button>
+              <button type="button" className={`star-filter-btn ${starThreshold === 3 ? 'active' : ''}`} onClick={() => { setStarThreshold(3); setCurrentPage(1); }}>3 stars</button>
+              <button type="button" className={`star-filter-btn ${starThreshold === 4 ? 'active' : ''}`} onClick={() => { setStarThreshold(4); setCurrentPage(1); }}>4 stars</button>
+              <button type="button" className={`star-filter-btn ${starThreshold === 5 ? 'active' : ''}`} onClick={() => { setStarThreshold(5); setCurrentPage(1); }}>5 stars</button>
             </div>
 
-            <label>
-              <input type="checkbox" checked={onlyDeal} onChange={() => { setOnlyDeal((v) => !v); setCurrentPage(1); }} /> Deal only
-            </label>
-            <label>
-              <input type="checkbox" checked={onlyBookable} onChange={() => { setOnlyBookable((v) => !v); setCurrentPage(1); }} /> Bookable only
-            </label>
-            <label>
-              <input type="checkbox" checked={onlyRoomOnly} onChange={() => { setOnlyRoomOnly((v) => !v); setCurrentPage(1); }} /> Room only
-            </label>
-            <label>
-              <input type="checkbox" checked={onlyFreeCancellation} onChange={() => { setOnlyFreeCancellation((v) => !v); setCurrentPage(1); }} /> Free cancellation
-            </label>
+            <label><input type="checkbox" checked={onlyDeal} onChange={() => { setOnlyDeal((v) => !v); setCurrentPage(1); }} /> Deal only</label>
+            <label><input type="checkbox" checked={onlyBookable} onChange={() => { setOnlyBookable((v) => !v); setCurrentPage(1); }} /> Bookable only</label>
+            <label><input type="checkbox" checked={onlyRoomOnly} onChange={() => { setOnlyRoomOnly((v) => !v); setCurrentPage(1); }} /> Room only</label>
+            <label><input type="checkbox" checked={onlyFreeCancellation} onChange={() => { setOnlyFreeCancellation((v) => !v); setCurrentPage(1); }} /> Free cancellation</label>
 
             <button type="button" className="btn btn-outline" style={{ marginTop: 12, width: '100%' }} onClick={resetFilters}>
               Reset filters
             </button>
           </div>
-
-          {activeSummary.length ? (
-            <div className="side-card">
-              <div className="side-title">Active filters</div>
-              <div className="active-filter-bar">
-                {activeSummary.map((item) => (
-                  <span key={item} className="toolbar-pill active-pill">
-                    {item}
-                  </span>
-                ))}
-              </div>
-            </div>
-          ) : null}
         </aside>
 
         <section className="tb-results">
           <div className="tb-results-head">
             <h2>{total} hotels in {destination}</h2>
-            <select
-              className="sort-select"
-              value={sortBy}
-              onChange={(e) => {
-                setSortBy(e.target.value);
-                setCurrentPage(1);
-              }}
-            >
+            <select className="sort-select" value={sortBy} onChange={(e) => { setSortBy(e.target.value); setCurrentPage(1); }}>
               <option value="best">Best match</option>
               <option value="price-asc">Price low to high</option>
               <option value="price-desc">Price high to low</option>
@@ -641,144 +563,127 @@ export default function Home() {
             </select>
           </div>
 
+          {activeSummary.length ? (
+            <div className="active-filters-row">
+              {activeSummary.map((item) => (
+                <span key={item} className="toolbar-pill active-pill">
+                  {item}
+                </span>
+              ))}
+            </div>
+          ) : null}
+
           <div className="results-toolbar">
             <span className="toolbar-pill">All properties</span>
             <span className="toolbar-pill">Hotels</span>
             <span className="toolbar-pill">Deals</span>
           </div>
 
-          {filteredHotels.length ? (
-            <div className="featured-deals-strip">
-              {[...filteredHotels].slice(0, 3).map((hotel) => (
-                <button
-                  key={hotel.hotelCode}
-                  type="button"
-                  className={`featured-deal-card ${selectedHotel?.hotelCode === hotel.hotelCode ? 'active' : ''}`}
-                  onClick={() => setSelectedHotel(hotel)}
-                >
-                  <div className="featured-deal-badge">
-                    {parseStars(hotel?.categoryName)
-                      ? `${parseStars(hotel.categoryName)} STAR${parseStars(hotel.categoryName) > 1 ? 'S' : ''}`
-                      : 'HOTEL'}
-                  </div>
-                  <div className="featured-deal-title">{hotel.hotelName}</div>
-                  <div className="featured-deal-subtitle">
-                    {hotel.destinationName || hotel.zoneName || destination}
-                  </div>
-                  <div className="featured-deal-price">
-                    {hotel.currency || 'INR'} {hotel.minPrice || 0}
-                  </div>
-                  <div className="featured-deal-footer">
-                    <span>{hotel.cheapestRate?.boardName || 'No board'}</span>
-                    <span>View on map</span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          ) : null}
-
-          {searchBody && isLoading ? <p>Loading hotels...</p> : null}
-
-          {apiError ? (
-            <div className="search-error">
-              {quotaExceeded ? 'Hotelbeds quota exceeded. Please try again later or contact support.' : apiError}
-            </div>
-          ) : null}
-
-          {!apiError ? (
-            <>
-              <div className="hotel-list">
-                {pagedHotels.length ? (
-                  pagedHotels.map((hotel) => (
-                    <HotelCard
-                      key={hotel.hotelCode}
-                      hotel={hotel}
-                      query={query}
-                      selected={selectedHotel?.hotelCode === hotel?.hotelCode}
-                      onSelect={() => setSelectedHotel(hotel)}
-                    />
-                  ))
-                ) : searchBody ? (
-                  <div className="empty-state">
-                    <div className="empty-icon">🏨</div>
-                    <h3>No hotels found</h3>
-                    <p>Try changing dates, destination, or filters.</p>
-                  </div>
-                ) : (
-                  <div className="empty-state">
-                    <div className="empty-icon">🏨</div>
-                    <h3>Search to see hotels</h3>
-                    <p>Choose a destination and click Search.</p>
-                  </div>
-                )}
-              </div>
-
-              {displayedHotels.length > PAGE_SIZE ? (
-                <div className="pagination">
-                  <button className="btn btn-outline" onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1}>
-                    Prev
-                  </button>
-                  <div className="pagination-info">
-                    Page {currentPage} of {totalPages}
-                  </div>
-                  <button className="btn btn-outline" onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
-                    Next
-                  </button>
+          <div className="hotel-list">
+            {pagedHotels.length ? (
+              pagedHotels.map((hotel) => (
+                <div key={hotel.hotelCode} data-hotel-code={hotel.hotelCode}>
+                  <HotelCard
+                    hotel={hotel}
+                    query={query}
+                    selected={selectedHotel?.hotelCode === hotel?.hotelCode}
+                    onSelect={() => {
+                      setSelectedHotel(hotel);
+                      scrollHotelCardIntoView(hotel.hotelCode);
+                    }}
+                  />
                 </div>
-              ) : null}
-            </>
+              ))
+            ) : searchBody ? (
+              <div className="empty-state">
+                <div className="empty-icon">🏨</div>
+                <h3>No hotels found</h3>
+                <p>Try changing dates, destination, or filters.</p>
+              </div>
+            ) : (
+              <div className="empty-state">
+                <div className="empty-icon">🏨</div>
+                <h3>Search to see hotels</h3>
+                <p>Choose a destination and click Search.</p>
+              </div>
+            )}
+          </div>
+
+          {total > PAGE_SIZE ? (
+            <div className="pagination">
+              <button className="btn btn-outline" onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1}>
+                Prev
+              </button>
+              <div className="pagination-info">
+                Page {currentPage} of {totalPages}
+              </div>
+              <button className="btn btn-outline" onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
+                Next
+              </button>
+            </div>
           ) : null}
         </section>
       </main>
 
       {mapPopupOpen ? (
         <div className="map-modal-backdrop" onClick={() => setMapPopupOpen(false)}>
-          <div className="map-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="map-modal map-modal-leaflet" onClick={(e) => e.stopPropagation()}>
             <button className="map-modal-close" type="button" onClick={() => setMapPopupOpen(false)}>
               ×
             </button>
 
             <div className="map-modal-header">
               <h3>Search on map: {destination}</h3>
-              <p>{displayedHotels.length} hotels available in this search</p>
+              <p>{filteredHotels.length} hotels available in this search</p>
             </div>
 
             <div className="map-modal-content">
               <div className="map-modal-map">
-                <div className="map-canvas-placeholder">
-                  {mapPoints.length ? (
-                    mapPoints.map((hotel) => (
-                      <button
-                        key={hotel.hotelCode}
-                        type="button"
-                        className={`map-marker ${selectedHotel?.hotelCode === hotel.hotelCode ? 'active' : ''}`}
-                        style={{ left: `${hotel.left}%`, top: `${hotel.top}%` }}
-                        onClick={() => setSelectedHotel(hotel)}
-                      >
-                        <span className="map-marker-pin">📍</span>
-                        <span className="map-marker-label">{hotel.hotelName}</span>
-                        <span className="map-marker-price">
-                          {hotel.currency || 'INR'} {hotel.minPrice || 0}
-                        </span>
-                      </button>
-                    ))
-                  ) : (
-                    <>
-                      <div className="map-pin">📍</div>
-                      <div className="map-text">{mapLabel}</div>
-                    </>
-                  )}
-                </div>
+                {mounted ? (
+                  <MapContainer center={mapCenter} zoom={11} style={{ height: '100%', width: '100%' }}>
+                    <TileLayer
+                      attribution='&copy; OpenStreetMap contributors'
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
+                    {mapHotels.map((hotel, index) => {
+                      const selected = selectedHotel?.hotelCode === hotel.hotelCode;
+                      return (
+                        <Marker
+                          key={hotel.hotelCode}
+                          position={hotel.coords}
+                          icon={createIcon(selected)}
+                          eventHandlers={{
+                            click: () => {
+                              setSelectedHotel(hotel);
+                              scrollHotelCardIntoView(hotel.hotelCode);
+                            },
+                          }}
+                        >
+                          <Popup>
+                            <strong>{hotel.hotelName}</strong>
+                            <br />
+                            {hotel.destinationName || hotel.zoneName || destination}
+                            <br />
+                            INR {hotel.minPrice || 0}
+                          </Popup>
+                        </Marker>
+                      );
+                    })}
+                  </MapContainer>
+                ) : null}
               </div>
 
               <div className="map-modal-results">
-                {displayedHotels.length ? (
-                  displayedHotels.map((hotel) => (
+                {filteredHotels.length ? (
+                  filteredHotels.map((hotel) => (
                     <button
                       key={hotel.hotelCode}
                       type="button"
                       className={`map-item ${selectedHotel?.hotelCode === hotel.hotelCode ? 'active' : ''}`}
-                      onClick={() => setSelectedHotel(hotel)}
+                      onClick={() => {
+                        setSelectedHotel(hotel);
+                        scrollHotelCardIntoView(hotel.hotelCode);
+                      }}
                     >
                       <strong>{hotel.hotelName}</strong>
                       <span>{hotel.cheapestRate?.roomName || 'Room'} • {hotel.cheapestRate?.boardName || 'No board'}</span>

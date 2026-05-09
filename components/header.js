@@ -4,7 +4,12 @@ import { useAuth } from '../context/AuthContext';
 
 export default function Header() {
   const router = useRouter();
-  const { isAuthenticated, user, logout } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
+
+  function handleLogout() {
+    logout();
+    router.push('/login');
+  }
 
   return (
     <header className="tb-topbar">
@@ -15,13 +20,13 @@ export default function Header() {
         </Link>
 
         <nav className="tb-nav">
-          <Link href="/" className="tb-nav-link">
+          <Link href="/" className={`tb-nav-link ${router.pathname === '/' ? 'tb-nav-link-active' : ''}`}>
             Hotels
           </Link>
           <Link href="/" className="tb-nav-link">
             Hotels &amp; Homes
           </Link>
-          <Link href="/bookings" className="tb-nav-link tb-nav-link-active">
+          <Link href="/bookings" className={`tb-nav-link ${router.pathname === '/bookings' ? 'tb-nav-link-active' : ''}`}>
             My bookings
           </Link>
         </nav>
@@ -29,15 +34,8 @@ export default function Header() {
         <div className="tb-topbar-actions">
           {isAuthenticated ? (
             <>
-              <span className="tb-user">Hi, {user?.name || 'Guest'}</span>
-              <button
-                type="button"
-                className="btn btn-outline tb-header-btn"
-                onClick={() => {
-                  logout?.();
-                  router.push('/');
-                }}
-              >
+              <span className="tb-user">Hi, {user?.name || user?.email || 'Guest'}</span>
+              <button className="btn btn-outline tb-header-btn" onClick={handleLogout}>
                 Logout
               </button>
             </>

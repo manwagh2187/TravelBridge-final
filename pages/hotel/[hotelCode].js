@@ -20,9 +20,36 @@ function firstNonEmpty(...values) {
   return '';
 }
 
+function parseStarsFromValue(value) {
+  const match = String(value || '').match(/(\d+)/);
+  return match ? Number(match[1]) : 0;
+}
+
+function parseStars(hotelOrValue) {
+  if (hotelOrValue && typeof hotelOrValue === 'object') {
+    const candidates = [
+      hotelOrValue?.categoryName,
+      hotelOrValue?.cheapestRate?.categoryName,
+      hotelOrValue?.rates?.[0]?.categoryName,
+      hotelOrValue?.hotelCategoryName,
+      hotelOrValue?.stars,
+      hotelOrValue?.starRating,
+    ];
+
+    for (const value of candidates) {
+      const stars = parseStarsFromValue(value);
+      if (stars) return stars;
+    }
+
+    return 0;
+  }
+
+  return parseStarsFromValue(hotelOrValue);
+}
+
 function isBookable(rate) {
   const text = `${rate?.rateType || ''} ${rate?.paymentType || ''} ${rate?.packaging || ''}`.toUpperCase();
-  return text.includes('BOOKABLE') || text.includes('AT_WEB') || text.includes('ROOM ONLY') || true;
+  return text.includes('BOOKABLE') || text.includes('AT_WEB') || text.includes('ROOM ONLY');
 }
 
 function buildAmenities(rows) {
@@ -96,6 +123,7 @@ export default function HotelDetailsPage() {
       destinationName: firstNonEmpty(storedHotel?.destinationName, first.destinationName, destination),
       zoneName: firstNonEmpty(storedHotel?.zoneName, first.zoneName),
       categoryName: firstNonEmpty(storedHotel?.categoryName, first.categoryName),
+      stars: parseStars(storedHotel || first),
     };
   }, [rows, storedHotel, hotelCode, destination]);
 
@@ -140,7 +168,7 @@ export default function HotelDetailsPage() {
   const overviewItems = [
     { label: 'Hotel code', value: summary.hotelCode || hotelCode },
     { label: 'Location', value: summary.zoneName || summary.destinationName },
-    { label: 'Category', value: summary.categoryName },
+    { label: 'Category', value: summary.categoryName || (summary.stars ? `${summary.stars} STARS` : '-') },
     { label: 'Available rates', value: rows.length || 0 },
     { label: 'Bookable rates', value: availableRates.length || 0 },
     { label: 'Cheapest rate', value: cheapest ? `${cheapest.currency || 'INR'} ${formatPrice(cheapest.net)}` : '-' },
@@ -184,7 +212,7 @@ export default function HotelDetailsPage() {
           <div className="hotel-hero-card">
             <div className="hotel-hero-main">
               <div className="hotel-hero-badge-row">
-                <span className="hotel-hero-badge">{summary.categoryName || 'Hotel'}</span>
+                <span className="hotel-hero-badge">{summary.categoryName || (summary.stars ? `${summary.stars} STARS` : 'Hotel')}</span>
                 <span className="hotel-hero-badge soft">{availableRates.length} options</span>
               </div>
 
@@ -391,7 +419,7 @@ export default function HotelDetailsPage() {
                 <div className="hotel-rate-item">
                   <strong>{summary.hotelName}</strong>
                   <span>{summary.destinationName}</span>
-                  <span>{summary.categoryName}</span>
+                  <span>{summary.categoryName || (summary.stars ? `${summary.stars} STARS` : '-')}</span>
                   <span>{rows.length} rate options found</span>
                 </div>
               </div>

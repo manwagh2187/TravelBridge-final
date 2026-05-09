@@ -1,5 +1,5 @@
 import { useRouter } from 'next/router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 function shortText(value, max = 90) {
   const text = String(value || '').trim();
@@ -11,6 +11,14 @@ function upsertBooking(existing, booking) {
   const reference = String(booking.reference || '').trim();
   const filtered = existing.filter((b) => String(b.reference || '').trim() !== reference);
   return [booking, ...filtered];
+}
+
+function firstNonEmpty(...values) {
+  for (const value of values) {
+    const text = String(value || '').trim();
+    if (text) return text;
+  }
+  return '';
 }
 
 export default function CheckoutPage() {
@@ -33,13 +41,54 @@ export default function CheckoutPage() {
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [storedBooking, setStoredBooking] = useState(null);
+
+  useEffect(() => {
+    if (!router.isReady) return;
+
+    try {
+      const raw = sessionStorage.getItem('travelbridge-checkout');
+      if (raw) setStoredBooking(JSON.parse(raw));
+    } catch {
+      // ignore
+    }
+  }, [router.isReady]);
+
+  const normalized = useMemo(() => {
+    return {
+      hotelCode: firstNonEmpty(hotelCode, storedBooking?.hotelCode),
+      hotelName: firstNonEmpty(hotelName, storedBooking?.hotelName, 'Hotel'),
+      roomCode: firstNonEmpty(roomCode, storedBooking?.roomCode),
+      rateKey: firstNonEmpty(rateKey, storedBooking?.rateKey),
+      boardName: firstNonEmpty(boardName, storedBooking?.boardName),
+      destinationName: firstNonEmpty(destinationName, storedBooking?.destinationName),
+      checkIn: firstNonEmpty(checkIn, storedBooking?.checkIn),
+      checkOut: firstNonEmpty(checkOut, storedBooking?.checkOut),
+      guests: firstNonEmpty(guests, storedBooking?.guests, '2'),
+    };
+  }, [hotelCode, hotelName, roomCode, rateKey, boardName, destinationName, checkIn, checkOut, guests, storedBooking]);
 
   const nights = useMemo(() => {
-    if (!checkIn || !checkOut) return 1;
-    const a = new Date(checkIn);
-    const b = new Date(checkOut);
-    return Math.max(1, Math.round((b - a) / (1000 * 60 * 60 * 24)));
-  }, [checkIn, checkOut]);
+    if (!normalized.checkIn || !normalized.checkOut) return 1;
+    const a = new Date(normalized.checkIn);
+    const b = new Date(normalized.checkOut);
+    const diff = Math.round((b - a) / (1000 * 60 * 60 * 24));
+    return Math.max(1, diff || 1);
+  }, [normalized.checkIn, normalized.checkOut]);
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(
+        'travelbridge-checkout',
+        JSON.stringify({
+          ...normalized,
+          nights,
+        })
+      );
+    } catch {
+      // ignore
+    }
+  }, [normalized, nights]);
 
   async function handleBook() {
     setLoading(true);
@@ -50,14 +99,14 @@ export default function CheckoutPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          hotelCode,
-          rateKey,
-          roomCode,
-          boardName,
-          destinationName,
-          checkIn,
-          checkOut,
-          guests,
+          hotelCode: normalized.hotelCode,
+          rateKey: normalized.rateKey,
+          roomCode: normalized.roomCode,
+          boardName: normalized.boardName,
+          destinationName: normalized.destinationName,
+          checkIn: normalized.checkIn,
+          checkOut: normalized.checkOut,
+          guests: normalized.guests,
           holder: {
             name: firstName,
             surname: lastName,
@@ -82,15 +131,15 @@ export default function CheckoutPage() {
 
       const bookingRecord = {
         reference,
-        hotelCode,
-        hotelName,
-        roomCode,
-        rateKey,
-        boardName,
-        destinationName,
-        checkIn,
-        checkOut,
-        guests,
+        hotelCode: normalized.hotelCode,
+        hotelName: normalized.hotelName,
+        roomCode: normalized.roomCode,
+        rateKey: normalized.rateKey,
+        boardName: normalized.boardName,
+        destinationName: normalized.destinationName,
+        checkIn: normalized.checkIn,
+        checkOut: normalized.checkOut,
+        guests: normalized.guests,
         holder: {
           name: firstName,
           surname: lastName,
@@ -131,7 +180,7 @@ export default function CheckoutPage() {
 
           <div className="details-header">
             <h1>Checkout</h1>
-            <p>{hotelName || 'Complete your booking'}</p>
+            <p>{normalized.hotelName || 'Complete your booking'}</p>
           </div>
 
           <div className="booking-badge">
@@ -141,23 +190,23 @@ export default function CheckoutPage() {
           <div className="booking-layout">
             <div className="hotel-details-card">
               <div className="hotel-details-grid">
-                <div className="hotel-details-item"><strong>Hotel:</strong> <span>{hotelName || '-'}</span></div>
-                <div className="hotel-details-item"><strong>Room:</strong> <span>{roomCode || '-'}</span></div>
-                <div className="hotel-details-item"><strong>Board:</strong> <span>{boardName || '-'}</span></div>
-                <div className="hotel-details-item"><strong>Destination:</strong> <span>{destinationName || '-'}</span></div>
-                <div className="hotel-details-item"><strong>Stay:</strong> <span>{checkIn || '-'} → {checkOut || '-'}</span></div>
-                <div className="hotel-details-item"><strong>Guests:</strong> <span>{guests || '-'}</span></div>
+                <div className="hotel-details-item"><strong>Hotel:</strong> <span>{normalized.hotelName || '-'}</span></div>
+                <div className="hotel-details-item"><strong>Room:</strong> <span>{normalized.roomCode || '-'}</span></div>
+                <div className="hotel-details-item"><strong>Board:</strong> <span>{normalized.boardName || '-'}</span></div>
+                <div className="hotel-details-item"><strong>Destination:</strong> <span>{normalized.destinationName || '-'}</span></div>
+                <div className="hotel-details-item"><strong>Stay:</strong> <span>{normalized.checkIn || '-'} → {normalized.checkOut || '-'}</span></div>
+                <div className="hotel-details-item"><strong>Guests:</strong> <span>{normalized.guests || '-'}</span></div>
                 <div className="hotel-details-item">
                   <strong>Rate key:</strong>
-                  <span title={String(rateKey || '')}>{shortText(rateKey, 80) || '-'}</span>
+                  <span title={String(normalized.rateKey || '')}>{shortText(normalized.rateKey, 80) || '-'}</span>
                 </div>
               </div>
             </div>
 
             <div className="checkout-summary-card">
               <div className="checkout-summary-title">Booking summary</div>
-              <div className="checkout-summary-hotel">{hotelName || '-'}</div>
-              <div className="checkout-summary-meta">{destinationName || '-'}</div>
+              <div className="checkout-summary-hotel">{normalized.hotelName || '-'}</div>
+              <div className="checkout-summary-meta">{normalized.destinationName || '-'}</div>
               <div className="checkout-summary-pill">{nights} night{nights > 1 ? 's' : ''}</div>
               <button className="btn btn-primary checkout-book-btn" onClick={handleBook} disabled={loading}>
                 {loading ? 'Booking...' : 'Confirm booking'}

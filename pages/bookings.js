@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
+import { useAuth } from '../context/AuthContext';
 
 function shortText(value, max = 90) {
   const text = String(value || '').trim();
@@ -39,18 +40,37 @@ function uniqueByReference(bookings) {
 
 export default function BookingsPage() {
   const router = useRouter();
+  const { loading, isAuthenticated } = useAuth();
   const [bookings, setBookings] = useState([]);
 
   useEffect(() => {
+    if (loading) return;
+    if (!isAuthenticated) {
+      router.replace('/login?next=/bookings');
+      return;
+    }
+
     try {
       const data = JSON.parse(localStorage.getItem('travelbridge-bookings') || '[]');
       setBookings(Array.isArray(data) ? data : []);
     } catch {
       setBookings([]);
     }
-  }, []);
+  }, [loading, isAuthenticated, router]);
 
   const uniqueBookings = useMemo(() => uniqueByReference(bookings), [bookings]);
+
+  if (loading || !isAuthenticated) {
+    return (
+      <div className="tb-page">
+        <section className="tb-hero tb-hero-details">
+          <div className="container">
+            <p>Loading...</p>
+          </div>
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div className="tb-page">

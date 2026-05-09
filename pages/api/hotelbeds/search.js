@@ -51,6 +51,8 @@ function toCsv(rows) {
     'zoneName',
     'latitude',
     'longitude',
+    'image',
+    'imagesJson',
     'roomCode',
     'roomName',
     'rateKey',
@@ -76,18 +78,46 @@ function toCsv(rows) {
   return lines.join('\n');
 }
 
+function pickImages(item) {
+  const candidates = [
+    item?.images,
+    item?.image,
+    item?.photos,
+    item?.pictures,
+    item?.gallery,
+    item?.hotel?.images,
+  ];
+
+  for (const value of candidates) {
+    if (Array.isArray(value) && value.length) {
+      return value
+        .map((img) => {
+          if (typeof img === 'string') return img;
+          return img?.path || img?.url || img?.image || img?.src || '';
+        })
+        .filter(Boolean);
+    }
+  }
+
+  return [];
+}
+
 function flattenHotel(item) {
+  const images = pickImages(item);
+
   const hotel = {
-    hotelCode: item?.code || '',
-    hotelName: item?.name || '',
-    categoryCode: item?.categoryCode || '',
-    categoryName: item?.categoryName || '',
+    hotelCode: item?.code || item?.hotel?.code || '',
+    hotelName: item?.name || item?.hotel?.name || '',
+    categoryCode: item?.categoryCode || item?.hotel?.categoryCode || '',
+    categoryName: item?.categoryName || item?.hotel?.categoryName || '',
     destinationCode: item?.destinationCode || '',
-    destinationName: item?.destinationName || '',
+    destinationName: item?.destinationName || item?.destination?.name || '',
     zoneCode: item?.zoneCode || '',
     zoneName: item?.zoneName || '',
-    latitude: item?.latitude || '',
-    longitude: item?.longitude || '',
+    latitude: item?.latitude || item?.hotel?.latitude || '',
+    longitude: item?.longitude || item?.hotel?.longitude || '',
+    image: images[0] || '',
+    imagesJson: JSON.stringify(images),
   };
 
   const rooms = Array.isArray(item?.rooms) ? item.rooms : [];
@@ -174,6 +204,8 @@ export default async function handler(req, res) {
           categoryName: row.categoryName,
           destinationName: row.destinationName,
           zoneName: row.zoneName,
+          image: row.image,
+          imagesJson: row.imagesJson,
         };
       }
     }
