@@ -317,7 +317,7 @@ export default function HotelDetailsPage() {
                 {compareRows.map((rate, idx) => {
                   const isCheapest = cheapest && Number(rate.net || 0) === Number(cheapest.net || 0);
                   const roomImages = parseImages(rate.roomImagesJson);
-                  const roomImage = normalizeImageUrl(rate.roomImage || roomImages[0] || galleryImages[0] || '');
+                  const roomImage = normalizeImageUrl(rate.roomImage || roomImages[0] || galleryImages[0] || summary.image || '');
 
                   return (
                     <div key={`${rate.rateKey || 'compare'}-${idx}`} className={`compare-card ${isCheapest ? 'cheapest' : ''}`}>
@@ -395,7 +395,7 @@ export default function HotelDetailsPage() {
                       const selected = compare.includes(key);
                       const isCheapest = cheapest && Number(rate.net || 0) === Number(cheapest.net || 0);
                       const roomImages = parseImages(rate.roomImagesJson);
-                      const roomImage = normalizeImageUrl(rate.roomImage || roomImages[0] || galleryImages[0] || '');
+                      const roomImage = normalizeImageUrl(rate.roomImage || roomImages[0] || galleryImages[0] || summary.image || '');
 
                       return (
                         <div
@@ -467,6 +467,19 @@ export default function HotelDetailsPage() {
                               <span>Adults: {safeText(rate.adults)}</span>
                               <span>Children: {safeText(rate.children)}</span>
                               <span>Cancellation from: {safeText(rate.cancellationFrom)}</span>
+
+                              {roomImages.length > 1 ? (
+                                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                                  {roomImages.slice(0, 4).map((src, i) => (
+                                    <img
+                                      key={`${src}-${i}`}
+                                      src={src}
+                                      alt={`${rate.roomName || 'Room'} ${i + 1}`}
+                                      style={{ width: 72, height: 56, objectFit: 'cover', borderRadius: 10 }}
+                                    />
+                                  ))}
+                                </div>
+                              ) : null}
                             </div>
                           ) : null}
                         </div>
