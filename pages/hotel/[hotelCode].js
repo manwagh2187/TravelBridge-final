@@ -231,7 +231,9 @@ export default function HotelDetailsPage() {
           <div className="hotel-hero-card">
             <div className="hotel-hero-main">
               <div className="hotel-hero-badge-row">
-                <span className="hotel-hero-badge">{summary.categoryName || (summary.stars ? `${summary.stars} STARS` : 'Hotel')}</span>
+                <span className="hotel-hero-badge">
+                  {summary.categoryName || (summary.stars ? `${summary.stars} STARS` : 'Hotel')}
+                </span>
                 <span className="hotel-hero-badge soft">{availableRates.length} options</span>
               </div>
 
@@ -259,7 +261,11 @@ export default function HotelDetailsPage() {
             <div className="hotel-hero-side">
               <div className="hotel-map-card">
                 {galleryImages[0] ? (
-                  <img src={galleryImages[0]} alt={summary.hotelName} style={{ width: '100%', height: 220, objectFit: 'cover', borderRadius: 14 }} />
+                  <img
+                    src={galleryImages[0]}
+                    alt={summary.hotelName}
+                    style={{ width: '100%', height: 220, objectFit: 'cover', borderRadius: 14 }}
+                  />
                 ) : (
                   <div className="map-pin">📍</div>
                 )}
@@ -308,7 +314,13 @@ export default function HotelDetailsPage() {
 
                   return (
                     <div key={`${rate.rateKey || 'compare'}-${idx}`} className={`compare-card ${isCheapest ? 'cheapest' : ''}`}>
-                      {roomImage ? <img src={roomImage} alt={rate.roomName || 'Room'} style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 14 }} /> : null}
+                      {roomImage ? (
+                        <img
+                          src={roomImage}
+                          alt={rate.roomName || 'Room'}
+                          style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 14 }}
+                        />
+                      ) : null}
                       <strong>{safeText(rate.roomName, 'Room')}</strong>
                       <span>{safeText(rate.boardName, 'No board')}</span>
                       <div className="compare-price">
@@ -333,19 +345,26 @@ export default function HotelDetailsPage() {
           <div className="hotel-rates-card">
             <div className="hotel-rates-header">
               <h3>Available options</h3>
-              <div className="hotel-rates-meta">
-                {availableRates.length} bookable rooms
-              </div>
+              <div className="hotel-rates-meta">{availableRates.length} bookable rooms</div>
             </div>
 
             <div className="details-tabs">
-              <button className={`hotel-rate-pill ${activeTab === 'rates' ? 'active' : ''}`} onClick={() => setActiveTab('rates')}>
+              <button
+                className={`hotel-rate-pill ${activeTab === 'rates' ? 'active' : ''}`}
+                onClick={() => setActiveTab('rates')}
+              >
                 Rates
               </button>
-              <button className={`hotel-rate-pill ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>
+              <button
+                className={`hotel-rate-pill ${activeTab === 'overview' ? 'active' : ''}`}
+                onClick={() => setActiveTab('overview')}
+              >
                 Overview
               </button>
-              <button className={`hotel-rate-pill ${activeTab === 'policies' ? 'active' : ''}`} onClick={() => setActiveTab('policies')}>
+              <button
+                className={`hotel-rate-pill ${activeTab === 'policies' ? 'active' : ''}`}
+                onClick={() => setActiveTab('policies')}
+              >
                 Policies
               </button>
             </div>
@@ -388,11 +407,17 @@ export default function HotelDetailsPage() {
                           <div className="hotel-rate-topline">
                             <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
                               {roomImage ? (
-                                <img src={roomImage} alt={rate.roomName || 'Room'} style={{ width: 120, height: 86, objectFit: 'cover', borderRadius: 12 }} />
+                                <img
+                                  src={roomImage}
+                                  alt={rate.roomName || 'Room'}
+                                  style={{ width: 120, height: 86, objectFit: 'cover', borderRadius: 12 }}
+                                />
                               ) : null}
                               <div>
                                 <strong>{safeText(rate.roomName, 'Room')}</strong>
-                                <span>{safeText(rate.boardName, 'No board')} • {safeText(rate.rateType, 'No type')}</span>
+                                <span>
+                                  {safeText(rate.boardName, 'No board')} • {safeText(rate.rateType, 'No type')}
+                                </span>
                               </div>
                             </div>
                             <div className="hotel-rate-price">
