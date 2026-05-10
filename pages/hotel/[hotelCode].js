@@ -62,13 +62,21 @@ function buildAmenities(rows) {
   return Array.from(set).slice(0, 6);
 }
 
+function normalizeImageUrl(img) {
+  if (!img) return '';
+  const value = String(img).trim();
+  if (!value) return '';
+  if (/^https?:\/\//i.test(value)) return value;
+  return `https://photos.hotelbeds.com/giata/${value.replace(/^\/+/, '')}`;
+}
+
 function parseImages(value) {
   try {
     if (!value) return [];
-    if (Array.isArray(value)) return value.filter(Boolean);
+    if (Array.isArray(value)) return value.map(normalizeImageUrl).filter(Boolean);
     if (typeof value === 'string') {
       const parsed = JSON.parse(value);
-      if (Array.isArray(parsed)) return parsed.filter(Boolean);
+      if (Array.isArray(parsed)) return parsed.map(normalizeImageUrl).filter(Boolean);
     }
   } catch {
     // ignore
@@ -131,7 +139,6 @@ export default function HotelDetailsPage() {
 
   const summary = useMemo(() => {
     const first = rows[0] || {};
-    const hotelImages = parseImages(storedHotel?.imagesJson || first.imagesJson);
     return {
       hotelCode: firstNonEmpty(storedHotel?.hotelCode, first.hotelCode, hotelCode),
       hotelName: firstNonEmpty(storedHotel?.hotelName, first.hotelName, 'Hotel details'),
@@ -139,8 +146,8 @@ export default function HotelDetailsPage() {
       zoneName: firstNonEmpty(storedHotel?.zoneName, first.zoneName),
       categoryName: firstNonEmpty(storedHotel?.categoryName, first.categoryName),
       stars: parseStars(storedHotel || first),
-      images: hotelImages,
-      image: storedHotel?.image || first.image || hotelImages[0] || '',
+      images: parseImages(storedHotel?.imagesJson || first.imagesJson),
+      image: normalizeImageUrl(storedHotel?.image || first.image || ''),
     };
   }, [rows, storedHotel, hotelCode, destination]);
 
@@ -309,8 +316,8 @@ export default function HotelDetailsPage() {
               <div className="compare-grid">
                 {compareRows.map((rate, idx) => {
                   const isCheapest = cheapest && Number(rate.net || 0) === Number(cheapest.net || 0);
-                  const roomImages = parseImages(rate.imagesJson);
-                  const roomImage = rate.roomImage || roomImages[0] || galleryImages[0] || '';
+                  const roomImages = parseImages(rate.roomImagesJson);
+                  const roomImage = normalizeImageUrl(rate.roomImage || roomImages[0] || galleryImages[0] || '');
 
                   return (
                     <div key={`${rate.rateKey || 'compare'}-${idx}`} className={`compare-card ${isCheapest ? 'cheapest' : ''}`}>
@@ -349,22 +356,13 @@ export default function HotelDetailsPage() {
             </div>
 
             <div className="details-tabs">
-              <button
-                className={`hotel-rate-pill ${activeTab === 'rates' ? 'active' : ''}`}
-                onClick={() => setActiveTab('rates')}
-              >
+              <button className={`hotel-rate-pill ${activeTab === 'rates' ? 'active' : ''}`} onClick={() => setActiveTab('rates')}>
                 Rates
               </button>
-              <button
-                className={`hotel-rate-pill ${activeTab === 'overview' ? 'active' : ''}`}
-                onClick={() => setActiveTab('overview')}
-              >
+              <button className={`hotel-rate-pill ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>
                 Overview
               </button>
-              <button
-                className={`hotel-rate-pill ${activeTab === 'policies' ? 'active' : ''}`}
-                onClick={() => setActiveTab('policies')}
-              >
+              <button className={`hotel-rate-pill ${activeTab === 'policies' ? 'active' : ''}`} onClick={() => setActiveTab('policies')}>
                 Policies
               </button>
             </div>
@@ -396,8 +394,8 @@ export default function HotelDetailsPage() {
                       const bookable = isBookable(rate);
                       const selected = compare.includes(key);
                       const isCheapest = cheapest && Number(rate.net || 0) === Number(cheapest.net || 0);
-                      const roomImages = parseImages(rate.imagesJson);
-                      const roomImage = rate.roomImage || roomImages[0] || galleryImages[0] || '';
+                      const roomImages = parseImages(rate.roomImagesJson);
+                      const roomImage = normalizeImageUrl(rate.roomImage || roomImages[0] || galleryImages[0] || '');
 
                       return (
                         <div

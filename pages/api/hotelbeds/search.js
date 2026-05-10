@@ -4,6 +4,7 @@ import { hbAvailability, hbHotelContent } from '../../../lib/hotelbeds';
 
 const CACHE_DIR = path.join(process.cwd(), 'data', 'hotelbeds-cache');
 const INDEX_FILE = path.join(CACHE_DIR, 'hotel-index.json');
+const PHOTO_BASE = 'https://photos.hotelbeds.com/giata/';
 
 function safeKey(value) {
   return String(value || '')
@@ -53,6 +54,8 @@ function toCsv(rows) {
     'longitude',
     'image',
     'imagesJson',
+    'roomImage',
+    'roomImagesJson',
     'roomCode',
     'roomName',
     'rateKey',
@@ -78,83 +81,40 @@ function toCsv(rows) {
   return lines.join('\n');
 }
 
-function pickImages(item) {
-  const candidates = [
-    item?.images,
-    item?.image,
-    item?.photos,
-    item?.pictures,
-    item?.gallery,
-    item?.hotel?.images,
-  ];
-
-  for (const value of candidates) {
-    if (Array.isArray(value) && value.length) {
-      return value
-        .map((img) => {
-          if (typeof img === 'string') return img;
-          return img?.path || img?.url || img?.image || img?.src || '';
-        })
-        .filter(Boolean);
-    }
-  }
-
-  return [];
+function normalizeImageUrl(url) {
+  const value = String(url || '').trim();
+  if (!value) return '';
+  if (/^https?:\/\//i.test(value)) return value;
+  return `${PHOTO_BASE}${value.replace(/^\/+/, '')}`;
 }
 
-function flattenHotel(item) {
-  const images = pickImages(item);
+function extractImageUrls(source) {
+  const values = [];
 
-  const hotel = {
-    hotelCode: item?.code || item?.hotel?.code || '',
-    hotelName: item?.name || item?.hotel?.name || '',
-    categoryCode: item?.categoryCode || item?.hotel?.categoryCode || '',
-    categoryName: item?.categoryName || item?.hotel?.categoryName || '',
-    destinationCode: item?.destinationCode || '',
-    destinationName: item?.destinationName || item?.destination?.name || '',
-    zoneCode: item?.zoneCode || '',
-    zoneName: item?.zoneName || '',
-    latitude: item?.latitude || item?.hotel?.latitude || '',
-    longitude: item?.longitude || item?.hotel?.longitude || '',
-    image: images[0] || '',
-    imagesJson: JSON.stringify(images),
-  };
+  const candidates = [
+    source?.images,
+    source?.image,
+    source?.photos,
+    source?.pictures,
+    source?.gallery,
+    source?.hotel?.images,
+  ];
 
-  const rooms = Array.isArray(item?.rooms) ? item.rooms : [];
-  const rows = [];
-
-  for (const room of rooms) {
-    const rates = Array.isArray(room?.rates) ? room.rates : [];
-
-    for (const rate of rates) {
-      const cancellation =
-        Array.isArray(rate?.cancellationPolicies) && rate.cancellationPolicies.length
-          ? rate.cancellationPolicies[0]
-          : {};
-
-      rows.push({
-        ...hotel,
-        roomCode: room?.code || '',
-        roomName: room?.name || '',
-        rateKey: rate?.rateKey || '',
-        rateClass: rate?.rateClass || '',
-        rateType: rate?.rateType || '',
-        net: rate?.net || '',
-        allotment: rate?.allotment || '',
-        paymentType: rate?.paymentType || '',
-        packaging: rate?.packaging || '',
-        boardCode: rate?.boardCode || '',
-        boardName: rate?.boardName || '',
-        rooms: rate?.rooms || '',
-        adults: rate?.adults || '',
-        children: rate?.children || '',
-        cancellationFrom: cancellation?.from || '',
-        cancellationAmount: cancellation?.amount || '',
-      });
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) {
+      for (const img of candidate) {
+        if (typeof img === 'string') {
+          values.push(normalizeImageUrl(img));
+        } else if (img && typeof img === 'object') {
+          values.push(
+            normalizeImageUrl(img?.path || img?.url || img?.image || img?.src || '')
+          );
+        }
+      }
     }
   }
 
-  return rows;
+  return [...new Set(values.filter(Boolean))];
 }
 
 function extractHotelList(data) {
@@ -181,14 +141,78 @@ function extractContentHotels(data) {
   );
 }
 
-function extractImageUrls(hotel) {
-  const images = Array.isArray(hotel?.images) ? hotel.images : [];
-  return images
-    .map((img) => {
-      if (typeof img === 'string') return img;
-      return img?.path || img?.url || img?.image || img?.src || '';
-    })
-    .filter(Boolean);
+function pickRoomImages(room) {
+  const images = extractImageUrls(room);
+  if (images.length) return images;
+
+  const nested = [];
+  if (Array.isArray(room?.images)) {
+    for (const item of room.images) {
+      if (typeof item === 'string') nested.push(normalizeImageUrl(item));
+      else if (item && typeof item === 'object') {
+        nested.push(normalizeImageUrl(item?.path || item?.url || item?.image || item?.src || ''));
+      }
+    }
+  }
+  return [...new Set(nested.filter(Boolean))];
+}
+
+function flattenHotel(item, contentMeta = {}) {
+  const hotelImages = contentMeta.hotelImages?.length ? contentMeta.hotelImages : extractImageUrls(item);
+
+  const hotel = {
+    hotelCode: item?.code || item?.hotel?.code || '',
+    hotelName: item?.name || item?.hotel?.name || '',
+    categoryCode: item?.categoryCode || item?.hotel?.categoryCode || '',
+    categoryName: item?.categoryName || item?.hotel?.categoryName || '',
+    destinationCode: item?.destinationCode || '',
+    destinationName: item?.destinationName || item?.destination?.name || '',
+    zoneCode: item?.zoneCode || '',
+    zoneName: item?.zoneName || '',
+    latitude: item?.latitude || item?.hotel?.latitude || '',
+    longitude: item?.longitude || item?.hotel?.longitude || '',
+    image: hotelImages[0] || '',
+    imagesJson: JSON.stringify(hotelImages),
+  };
+
+  const rooms = Array.isArray(item?.rooms) ? item.rooms : [];
+  const rows = [];
+
+  for (const room of rooms) {
+    const roomImages = contentMeta.roomImagesByRoomCode?.[String(room?.code || '').trim()] || pickRoomImages(room);
+    const rates = Array.isArray(room?.rates) ? room.rates : [];
+
+    for (const rate of rates) {
+      const cancellation =
+        Array.isArray(rate?.cancellationPolicies) && rate.cancellationPolicies.length
+          ? rate.cancellationPolicies[0]
+          : {};
+
+      rows.push({
+        ...hotel,
+        roomImage: roomImages[0] || '',
+        roomImagesJson: JSON.stringify(roomImages),
+        roomCode: room?.code || '',
+        roomName: room?.name || '',
+        rateKey: rate?.rateKey || '',
+        rateClass: rate?.rateClass || '',
+        rateType: rate?.rateType || '',
+        net: rate?.net || '',
+        allotment: rate?.allotment || '',
+        paymentType: rate?.paymentType || '',
+        packaging: rate?.packaging || '',
+        boardCode: rate?.boardCode || '',
+        boardName: rate?.boardName || '',
+        rooms: rate?.rooms || '',
+        adults: rate?.adults || '',
+        children: rate?.children || '',
+        cancellationFrom: cancellation?.from || '',
+        cancellationAmount: cancellation?.amount || '',
+      });
+    }
+  }
+
+  return rows;
 }
 
 export default async function handler(req, res) {
@@ -213,41 +237,54 @@ export default async function handler(req, res) {
     const rawHotels = extractHotelList(data);
     const list = Array.isArray(rawHotels) ? rawHotels : [];
 
-    const results = list.flatMap(flattenHotel);
+    const baseResults = list.flatMap((item) => flattenHotel(item));
 
-    const hotelCodes = [...new Set(results.map((row) => String(row.hotelCode || '').trim()).filter(Boolean))];
+    const hotelCodes = [...new Set(baseResults.map((row) => String(row.hotelCode || '').trim()).filter(Boolean))];
 
-    let contentByCode = new Map();
+    const contentByCode = new Map();
+
     if (hotelCodes.length) {
       try {
         const contentData = await hbHotelContent(hotelCodes);
         const contentHotels = extractContentHotels(contentData);
 
-        contentByCode = new Map(
-          (Array.isArray(contentHotels) ? contentHotels : []).map((hotel) => {
-            const code = String(hotel?.hotelCode || hotel?.code || '').trim();
-            const images = extractImageUrls(hotel);
+        for (const hotel of Array.isArray(contentHotels) ? contentHotels : []) {
+          const code = String(hotel?.hotelCode || hotel?.code || '').trim();
+          if (!code) continue;
 
-            return [
-              code,
-              {
-                image: images[0] || '',
-                imagesJson: JSON.stringify(images),
-              },
-            ];
-          })
-        );
+          const hotelImages = extractImageUrls(hotel);
+
+          const roomImagesByRoomCode = {};
+          const roomList = Array.isArray(hotel?.rooms) ? hotel.rooms : [];
+          for (const room of roomList) {
+            const roomCode = String(room?.code || room?.roomCode || '').trim();
+            if (!roomCode) continue;
+            roomImagesByRoomCode[roomCode] = pickRoomImages(room);
+          }
+
+          contentByCode.set(code, {
+            hotelImages,
+            roomImagesByRoomCode,
+          });
+        }
       } catch (contentErr) {
         console.error('Hotel content lookup failed:', contentErr);
       }
     }
 
-    const mergedResults = results.map((row) => {
+    const mergedResults = baseResults.map((row) => {
       const content = contentByCode.get(String(row.hotelCode || '').trim()) || {};
+      const contentHotelImages = content.hotelImages || [];
+      const contentRoomImages = Array.isArray(content.roomImagesByRoomCode?.[String(row.roomCode || '').trim()])
+        ? content.roomImagesByRoomCode[String(row.roomCode || '').trim()]
+        : [];
+
       return {
         ...row,
-        image: content.image || row.image || '',
-        imagesJson: content.imagesJson || row.imagesJson || '[]',
+        image: contentHotelImages[0] || row.image || '',
+        imagesJson: JSON.stringify(contentHotelImages.length ? contentHotelImages : JSON.parse(row.imagesJson || '[]')),
+        roomImage: contentRoomImages[0] || row.roomImage || '',
+        roomImagesJson: JSON.stringify(contentRoomImages.length ? contentRoomImages : JSON.parse(row.roomImagesJson || '[]')),
       };
     });
 
@@ -263,6 +300,8 @@ export default async function handler(req, res) {
           zoneName: row.zoneName,
           image: row.image,
           imagesJson: row.imagesJson,
+          roomImage: row.roomImage,
+          roomImagesJson: row.roomImagesJson,
         };
       }
     }

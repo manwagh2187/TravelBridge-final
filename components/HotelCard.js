@@ -20,18 +20,16 @@ function reviewLabel(stars) {
 
 function normalizeImageUrl(img) {
   if (!img) return '';
-  if (typeof img === 'string') return img;
-  return img?.path || img?.url || img?.image || img?.src || '';
+  const value = String(img).trim();
+  if (!value) return '';
+  if (/^https?:\/\//i.test(value)) return value;
+  return `https://photos.hotelbeds.com/giata/${value.replace(/^\/+/, '')}`;
 }
 
 function parseImages(hotel) {
   try {
     if (hotel?.image) return [normalizeImageUrl(hotel.image)].filter(Boolean);
-
-    if (Array.isArray(hotel?.images)) {
-      return hotel.images.map(normalizeImageUrl).filter(Boolean);
-    }
-
+    if (Array.isArray(hotel?.images)) return hotel.images.map(normalizeImageUrl).filter(Boolean);
     if (typeof hotel?.imagesJson === 'string') {
       const parsed = JSON.parse(hotel.imagesJson);
       if (Array.isArray(parsed)) return parsed.map(normalizeImageUrl).filter(Boolean);
@@ -76,6 +74,8 @@ export default function HotelCard({ hotel, query, selected = false, onSelect }) 
           rates: hotel?.rates || [],
           image: heroImage,
           imagesJson: JSON.stringify(images),
+          roomImage: hotel?.roomImage || '',
+          roomImagesJson: hotel?.roomImagesJson || '[]',
         })
       );
     } catch {
