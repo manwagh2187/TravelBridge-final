@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { hbAvailability } from '../../../lib/hotelbeds';
+import { hbAvailability, hbHotelContent } from '../../../lib/hotelbeds';
 
 const CACHE_DIR = path.join(process.cwd(), 'data', 'hotelbeds-cache');
 const INDEX_FILE = path.join(CACHE_DIR, 'hotel-index.json');
@@ -170,6 +170,27 @@ function extractHotelList(data) {
   );
 }
 
+function extractContentHotels(data) {
+  return (
+    data?.hotels?.hotel ||
+    data?.hotels ||
+    data?.results ||
+    data?.data?.hotels ||
+    data?.data?.results ||
+    []
+  );
+}
+
+function extractImageUrls(hotel) {
+  const images = Array.isArray(hotel?.images) ? hotel.images : [];
+  return images
+    .map((img) => {
+      if (typeof img === 'string') return img;
+      return img?.path || img?.url || img?.image || img?.src || '';
+    })
+    .filter(Boolean);
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -194,8 +215,44 @@ export default async function handler(req, res) {
 
     const results = list.flatMap(flattenHotel);
 
+    const hotelCodes = [...new Set(results.map((row) => String(row.hotelCode || '').trim()).filter(Boolean))];
+
+    let contentByCode = new Map();
+    if (hotelCodes.length) {
+      try {
+        const contentData = await hbHotelContent(hotelCodes);
+        const contentHotels = extractContentHotels(contentData);
+
+        contentByCode = new Map(
+          (Array.isArray(contentHotels) ? contentHotels : []).map((hotel) => {
+            const code = String(hotel?.hotelCode || hotel?.code || '').trim();
+            const images = extractImageUrls(hotel);
+
+            return [
+              code,
+              {
+                image: images[0] || '',
+                imagesJson: JSON.stringify(images),
+              },
+            ];
+          })
+        );
+      } catch (contentErr) {
+        console.error('Hotel content lookup failed:', contentErr);
+      }
+    }
+
+    const mergedResults = results.map((row) => {
+      const content = contentByCode.get(String(row.hotelCode || '').trim()) || {};
+      return {
+        ...row,
+        image: content.image || row.image || '',
+        imagesJson: content.imagesJson || row.imagesJson || '[]',
+      };
+    });
+
     const hotelIndex = {};
-    for (const row of results) {
+    for (const row of mergedResults) {
       if (!row.hotelCode) continue;
       if (!hotelIndex[row.hotelCode]) {
         hotelIndex[row.hotelCode] = {
@@ -210,13 +267,13 @@ export default async function handler(req, res) {
       }
     }
 
-    fs.writeFileSync(cacheFile, toCsv(results), 'utf8');
+    fs.writeFileSync(cacheFile, toCsv(mergedResults), 'utf8');
     fs.writeFileSync(INDEX_FILE, JSON.stringify(hotelIndex, null, 2), 'utf8');
 
     return res.status(200).json({
-      results,
+      results: mergedResults,
       raw: data,
-      total: results.length,
+      total: mergedResults.length,
       cacheFile,
     });
   } catch (error) {

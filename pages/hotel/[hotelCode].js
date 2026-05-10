@@ -62,6 +62,20 @@ function buildAmenities(rows) {
   return Array.from(set).slice(0, 6);
 }
 
+function parseImages(value) {
+  try {
+    if (!value) return [];
+    if (Array.isArray(value)) return value.filter(Boolean);
+    if (typeof value === 'string') {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) return parsed.filter(Boolean);
+    }
+  } catch {
+    // ignore
+  }
+  return [];
+}
+
 export default function HotelDetailsPage() {
   const router = useRouter();
   const { hotelCode, destination, checkIn, checkOut, guests } = router.query;
@@ -117,6 +131,7 @@ export default function HotelDetailsPage() {
 
   const summary = useMemo(() => {
     const first = rows[0] || {};
+    const hotelImages = parseImages(storedHotel?.imagesJson || first.imagesJson);
     return {
       hotelCode: firstNonEmpty(storedHotel?.hotelCode, first.hotelCode, hotelCode),
       hotelName: firstNonEmpty(storedHotel?.hotelName, first.hotelName, 'Hotel details'),
@@ -124,6 +139,8 @@ export default function HotelDetailsPage() {
       zoneName: firstNonEmpty(storedHotel?.zoneName, first.zoneName),
       categoryName: firstNonEmpty(storedHotel?.categoryName, first.categoryName),
       stars: parseStars(storedHotel || first),
+      images: hotelImages,
+      image: storedHotel?.image || first.image || hotelImages[0] || '',
     };
   }, [rows, storedHotel, hotelCode, destination]);
 
@@ -201,6 +218,8 @@ export default function HotelDetailsPage() {
     });
   }
 
+  const galleryImages = summary.images.length ? summary.images : summary.image ? [summary.image] : [];
+
   return (
     <div className="tb-page">
       <section className="tb-hero tb-hero-details">
@@ -239,9 +258,13 @@ export default function HotelDetailsPage() {
 
             <div className="hotel-hero-side">
               <div className="hotel-map-card">
-                <div className="map-pin">📍</div>
-                <strong>Map preview</strong>
-                <span>{summary.zoneName || summary.destinationName}</span>
+                {galleryImages[0] ? (
+                  <img src={galleryImages[0]} alt={summary.hotelName} style={{ width: '100%', height: 220, objectFit: 'cover', borderRadius: 14 }} />
+                ) : (
+                  <div className="map-pin">📍</div>
+                )}
+                <strong>Hotel images</strong>
+                <span>{galleryImages.length ? `${galleryImages.length} image(s)` : 'No images found'}</span>
               </div>
 
               <div className="hotel-score-card">
@@ -251,6 +274,14 @@ export default function HotelDetailsPage() {
               </div>
             </div>
           </div>
+
+          {galleryImages.length ? (
+            <div className="detail-gallery-strip">
+              {galleryImages.map((src, idx) => (
+                <img key={`${src}-${idx}`} src={src} alt={`${summary.hotelName} ${idx + 1}`} />
+              ))}
+            </div>
+          ) : null}
 
           <div className="hotel-details-card details-sticky">
             <div className="hotel-details-grid">
@@ -272,8 +303,12 @@ export default function HotelDetailsPage() {
               <div className="compare-grid">
                 {compareRows.map((rate, idx) => {
                   const isCheapest = cheapest && Number(rate.net || 0) === Number(cheapest.net || 0);
+                  const roomImages = parseImages(rate.imagesJson);
+                  const roomImage = rate.roomImage || roomImages[0] || galleryImages[0] || '';
+
                   return (
                     <div key={`${rate.rateKey || 'compare'}-${idx}`} className={`compare-card ${isCheapest ? 'cheapest' : ''}`}>
+                      {roomImage ? <img src={roomImage} alt={rate.roomName || 'Room'} style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 14 }} /> : null}
                       <strong>{safeText(rate.roomName, 'Room')}</strong>
                       <span>{safeText(rate.boardName, 'No board')}</span>
                       <div className="compare-price">
@@ -342,6 +377,8 @@ export default function HotelDetailsPage() {
                       const bookable = isBookable(rate);
                       const selected = compare.includes(key);
                       const isCheapest = cheapest && Number(rate.net || 0) === Number(cheapest.net || 0);
+                      const roomImages = parseImages(rate.imagesJson);
+                      const roomImage = rate.roomImage || roomImages[0] || galleryImages[0] || '';
 
                       return (
                         <div
@@ -349,9 +386,14 @@ export default function HotelDetailsPage() {
                           className={`hotel-rate-item ${bookable ? 'bookable' : ''} ${selected ? 'selected' : ''} ${isCheapest ? 'cheapest' : ''}`}
                         >
                           <div className="hotel-rate-topline">
-                            <div>
-                              <strong>{safeText(rate.roomName, 'Room')}</strong>
-                              <span>{safeText(rate.boardName, 'No board')} • {safeText(rate.rateType, 'No type')}</span>
+                            <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+                              {roomImage ? (
+                                <img src={roomImage} alt={rate.roomName || 'Room'} style={{ width: 120, height: 86, objectFit: 'cover', borderRadius: 12 }} />
+                              ) : null}
+                              <div>
+                                <strong>{safeText(rate.roomName, 'Room')}</strong>
+                                <span>{safeText(rate.boardName, 'No board')} • {safeText(rate.rateType, 'No type')}</span>
+                              </div>
                             </div>
                             <div className="hotel-rate-price">
                               {rate.currency || 'INR'} {formatPrice(rate.net)}
@@ -412,27 +454,6 @@ export default function HotelDetailsPage() {
                   )}
                 </div>
               </>
-            ) : null}
-
-            {activeTab === 'overview' ? (
-              <div className="hotel-rates-list">
-                <div className="hotel-rate-item">
-                  <strong>{summary.hotelName}</strong>
-                  <span>{summary.destinationName}</span>
-                  <span>{summary.categoryName || (summary.stars ? `${summary.stars} STARS` : '-')}</span>
-                  <span>{rows.length} rate options found</span>
-                </div>
-              </div>
-            ) : null}
-
-            {activeTab === 'policies' ? (
-              <div className="hotel-rates-list">
-                <div className="hotel-rate-item">
-                  <strong>Rate policies</strong>
-                  <span>Cancellation and board conditions are shown per rate.</span>
-                  <span>Compare selected rooms before booking.</span>
-                </div>
-              </div>
             ) : null}
           </div>
         </div>

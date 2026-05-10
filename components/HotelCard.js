@@ -18,13 +18,23 @@ function reviewLabel(stars) {
   return 'Rated';
 }
 
+function normalizeImageUrl(img) {
+  if (!img) return '';
+  if (typeof img === 'string') return img;
+  return img?.path || img?.url || img?.image || img?.src || '';
+}
+
 function parseImages(hotel) {
   try {
-    if (hotel?.image) return [hotel.image];
-    if (Array.isArray(hotel?.images)) return hotel.images.filter(Boolean);
+    if (hotel?.image) return [normalizeImageUrl(hotel.image)].filter(Boolean);
+
+    if (Array.isArray(hotel?.images)) {
+      return hotel.images.map(normalizeImageUrl).filter(Boolean);
+    }
+
     if (typeof hotel?.imagesJson === 'string') {
       const parsed = JSON.parse(hotel.imagesJson);
-      if (Array.isArray(parsed)) return parsed.filter(Boolean);
+      if (Array.isArray(parsed)) return parsed.map(normalizeImageUrl).filter(Boolean);
     }
   } catch {
     // ignore
