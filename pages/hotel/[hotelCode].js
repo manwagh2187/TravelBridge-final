@@ -111,7 +111,7 @@ function ImageCarousel({ images, alt, height = 220 }) {
     if (list.length <= 1) return undefined;
     const timer = setInterval(() => {
       setIndex((i) => (i + 1) % list.length);
-    }, 3500);
+    }, 4000);
     return () => clearInterval(timer);
   }, [list.length]);
 
@@ -156,6 +156,88 @@ function ImageCarousel({ images, alt, height = 220 }) {
               />
             ))}
           </div>
+        </>
+      ) : null}
+    </div>
+  );
+}
+
+function RoomImageCarousel({ images, alt }) {
+  const list = Array.isArray(images) ? images.filter(Boolean) : [];
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    setIndex(0);
+  }, [list.length, alt]);
+
+  useEffect(() => {
+    if (list.length <= 1) return undefined;
+    const timer = setInterval(() => {
+      setIndex((i) => (i + 1) % list.length);
+    }, 2500);
+    return () => clearInterval(timer);
+  }, [list.length]);
+
+  if (!list.length) return null;
+
+  const active = list[index];
+
+  return (
+    <div style={{ position: 'relative', width: 120, height: 86, flexShrink: 0 }}>
+      <img
+        src={active}
+        alt={alt}
+        style={{ width: 120, height: 86, objectFit: 'cover', borderRadius: 12 }}
+      />
+
+      {list.length > 1 ? (
+        <>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIndex((i) => (i - 1 + list.length) % list.length);
+            }}
+            aria-label="Previous room image"
+            style={{
+              position: 'absolute',
+              left: 4,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              width: 22,
+              height: 22,
+              borderRadius: '999px',
+              border: 0,
+              background: 'rgba(255,255,255,0.9)',
+              fontSize: 14,
+              lineHeight: '22px',
+            }}
+          >
+            ‹
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIndex((i) => (i + 1) % list.length);
+            }}
+            aria-label="Next room image"
+            style={{
+              position: 'absolute',
+              right: 4,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              width: 22,
+              height: 22,
+              borderRadius: '999px',
+              border: 0,
+              background: 'rgba(255,255,255,0.9)',
+              fontSize: 14,
+              lineHeight: '22px',
+            }}
+          >
+            ›
+          </button>
         </>
       ) : null}
     </div>
@@ -446,13 +528,10 @@ export default function HotelDetailsPage() {
 
                   return (
                     <div key={`${rate.rateKey || 'compare'}-${idx}`} className={`compare-card ${isCheapest ? 'cheapest' : ''}`}>
-                      {roomImage ? (
-                        <img
-                          src={roomImage}
-                          alt={rate.roomName || 'Room'}
-                          style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 14 }}
-                        />
-                      ) : null}
+                      <RoomImageCarousel
+                        images={roomImages.length ? roomImages : [roomImage].filter(Boolean)}
+                        alt={rate.roomName || 'Room'}
+                      />
                       <strong>{safeText(rate.roomName, 'Room')}</strong>
                       <span>{safeText(rate.boardName, 'No board')}</span>
                       <div className="compare-price">
@@ -533,13 +612,10 @@ export default function HotelDetailsPage() {
                         >
                           <div className="hotel-rate-topline">
                             <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
-                              {roomImage ? (
-                                <img
-                                  src={roomImage}
-                                  alt={rate.roomName || 'Room'}
-                                  style={{ width: 120, height: 86, objectFit: 'cover', borderRadius: 12 }}
-                                />
-                              ) : null}
+                              <RoomImageCarousel
+                                images={roomImages.length ? roomImages : [roomImage].filter(Boolean)}
+                                alt={rate.roomName || 'Room'}
+                              />
                               <div>
                                 <strong>{safeText(rate.roomName, 'Room')}</strong>
                                 <span>

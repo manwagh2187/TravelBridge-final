@@ -3071,3 +3071,51 @@ select {
 .map-thumb-dot.active {
   background: #2563eb;
 }
+
+.compare-card {
+  overflow: hidden;
+}
+
+.compare-card .room-image-carousel,
+.hotel-rate-item .room-image-carousel {
+  margin-bottom: 12px;
+}
+
+.room-image-carousel {
+  width: 120px;
+  height: 86px;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.room-image-carousel img {
+  width: 120px;
+  height: 86px;
+  object-fit: cover;
+  border-radius: 12px;
+  display: block;
+}
+
+.room-image-carousel .room-nav-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #111827;
+  font-size: 14px;
+  line-height: 22px;
+  padding: 0;
+  cursor: pointer;
+}
+
+.room-image-carousel .room-nav-btn.prev {
+  left: 4px;
+}
+
+.room-image-carousel .room-nav-btn.next {
+  right: 4px;
+}

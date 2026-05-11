@@ -106,9 +106,7 @@ function extractImageUrls(source) {
         if (typeof img === 'string') {
           values.push(normalizeImageUrl(img));
         } else if (img && typeof img === 'object') {
-          values.push(
-            normalizeImageUrl(img?.path || img?.url || img?.image || img?.src || '')
-          );
+          values.push(normalizeImageUrl(img?.path || img?.url || img?.image || img?.src || ''));
         }
       }
     }
@@ -139,6 +137,17 @@ function extractContentHotels(data) {
     data?.data?.results ||
     []
   );
+}
+
+function pickRoomImagesFromHotelImages(hotelImages, roomCode) {
+  const target = String(roomCode || '').trim();
+  if (!target) return [];
+  return [...new Set(
+    (Array.isArray(hotelImages) ? hotelImages : [])
+      .filter((img) => String(img?.roomCode || '').trim() === target)
+      .map((img) => normalizeImageUrl(img?.path || img?.url || img?.image || img?.src || ''))
+      .filter(Boolean)
+  )];
 }
 
 function pickRoomImages(room) {
@@ -240,7 +249,6 @@ export default async function handler(req, res) {
     const baseResults = list.flatMap((item) => flattenHotel(item));
 
     const hotelCodes = [...new Set(baseResults.map((row) => String(row.hotelCode || '').trim()).filter(Boolean))];
-
     const contentByCode = new Map();
 
     if (hotelCodes.length) {
@@ -252,18 +260,44 @@ export default async function handler(req, res) {
           const code = String(hotel?.hotelCode || hotel?.code || '').trim();
           if (!code) continue;
 
-          const hotelImages = extractImageUrls(hotel);
-
+          const hotelImages = Array.isArray(hotel?.images) ? hotel.images : [];
           const roomImagesByRoomCode = {};
+
+          // Group hotel.images by roomCode
+          for (const img of hotelImages) {
+            const roomCode = String(img?.roomCode || '').trim();
+            if (!roomCode) continue;
+
+            const normalized = normalizeImageUrl(img?.path || img?.url || img?.image || img?.src || '');
+            if (!normalized) continue;
+
+            if (!roomImagesByRoomCode[roomCode]) {
+              roomImagesByRoomCode[roomCode] = [];
+            }
+
+            if (!roomImagesByRoomCode[roomCode].includes(normalized)) {
+              roomImagesByRoomCode[roomCode].push(normalized);
+            }
+          }
+
+          // Some content payloads may also nest room images under hotel.rooms
           const roomList = Array.isArray(hotel?.rooms) ? hotel.rooms : [];
           for (const room of roomList) {
             const roomCode = String(room?.code || room?.roomCode || '').trim();
             if (!roomCode) continue;
-            roomImagesByRoomCode[roomCode] = pickRoomImages(room);
+
+            const fromRoom = pickRoomImages(room);
+            if (!roomImagesByRoomCode[roomCode]) roomImagesByRoomCode[roomCode] = [];
+            for (const img of fromRoom) {
+              if (!roomImagesByRoomCode[roomCode].includes(img)) {
+                roomImagesByRoomCode[roomCode].push(img);
+              }
+            }
           }
 
           contentByCode.set(code, {
-            hotelImages,
+            hotelImages: hotelImages.map((img) => normalizeImageUrl(img?.path || img?.url || img?.image || img?.src || ''))
+              .filter(Boolean),
             roomImagesByRoomCode,
           });
         }
@@ -273,37 +307,47 @@ export default async function handler(req, res) {
     }
 
     const mergedResults = baseResults.map((row) => {
-  const content = contentByCode.get(String(row.hotelCode || '').trim()) || {};
-  const contentHotelImages = Array.isArray(content.hotelImages) ? content.hotelImages : [];
-  const contentRoomImages = Array.isArray(content.roomImagesByRoomCode?.[String(row.roomCode || '').trim()])
-    ? content.roomImagesByRoomCode[String(row.roomCode || '').trim()]
-    : [];
+      const content = contentByCode.get(String(row.hotelCode || '').trim()) || {};
+      const contentHotelImages = Array.isArray(content.hotelImages) ? content.hotelImages : [];
+      const contentRoomImages = Array.isArray(content.roomImagesByRoomCode?.[String(row.roomCode || '').trim()])
+        ? content.roomImagesByRoomCode[String(row.roomCode || '').trim()]
+        : [];
 
-  let existingHotelImages = [];
-  let existingRoomImages = [];
+      let existingHotelImages = [];
+      let existingRoomImages = [];
 
-  try {
-    existingHotelImages = JSON.parse(row.imagesJson || '[]');
-    if (!Array.isArray(existingHotelImages)) existingHotelImages = [];
-  } catch {
-    existingHotelImages = row.image ? [row.image] : [];
-  }
+      try {
+        existingHotelImages = JSON.parse(row.imagesJson || '[]');
+        if (!Array.isArray(existingHotelImages)) existingHotelImages = [];
+      } catch {
+        existingHotelImages = row.image ? [row.image] : [];
+      }
 
-  try {
-    existingRoomImages = JSON.parse(row.roomImagesJson || '[]');
-    if (!Array.isArray(existingRoomImages)) existingRoomImages = [];
-  } catch {
-    existingRoomImages = row.roomImage ? [row.roomImage] : [];
-  }
+      try {
+        existingRoomImages = JSON.parse(row.roomImagesJson || '[]');
+        if (!Array.isArray(existingRoomImages)) existingRoomImages = [];
+      } catch {
+        existingRoomImages = row.roomImage ? [row.roomImage] : [];
+      }
 
-  return {
-    ...row,
-    image: contentHotelImages[0] || row.image || existingHotelImages[0] || '',
-    imagesJson: JSON.stringify(contentHotelImages.length ? contentHotelImages : existingHotelImages),
-    roomImage: contentRoomImages[0] || row.roomImage || row.image || existingRoomImages[0] || '',
-    roomImagesJson: JSON.stringify(contentRoomImages.length ? contentRoomImages : existingRoomImages),
-  };
-});
+      const mergedRoomImages = [...new Set([
+        ...contentRoomImages,
+        ...existingRoomImages,
+      ].filter(Boolean))];
+
+      const mergedHotelImages = [...new Set([
+        ...contentHotelImages,
+        ...existingHotelImages,
+      ].filter(Boolean))];
+
+      return {
+        ...row,
+        image: mergedHotelImages[0] || row.image || '',
+        imagesJson: JSON.stringify(mergedHotelImages),
+        roomImage: mergedRoomImages[0] || row.roomImage || row.image || '',
+        roomImagesJson: JSON.stringify(mergedRoomImages),
+      };
+    });
 
     const hotelIndex = {};
     for (const row of mergedResults) {
