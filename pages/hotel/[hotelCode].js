@@ -111,7 +111,7 @@ function ImageCarousel({ images, alt, height = 220 }) {
     if (list.length <= 1) return undefined;
     const timer = setInterval(() => {
       setIndex((i) => (i + 1) % list.length);
-    }, 4000);
+    }, 3500);
     return () => clearInterval(timer);
   }, [list.length]);
 
@@ -262,14 +262,11 @@ export default function HotelDetailsPage() {
 
   const summary = useMemo(() => {
     const first = rows[0] || {};
-    const storedName = safeText(storedHotel?.hotelName, '');
-    const firstName = safeText(first.hotelName, '');
-    const hotelName = storedName || firstName || 'Hotel details';
     const images = getImageArray(storedHotel, first);
 
     return {
       hotelCode: firstNonEmpty(storedHotel?.hotelCode, first.hotelCode, hotelCode),
-      hotelName,
+      hotelName: firstNonEmpty(storedHotel?.hotelName, first.hotelName, 'Hotel details'),
       destinationName: firstNonEmpty(storedHotel?.destinationName, first.destinationName, destination),
       zoneName: firstNonEmpty(storedHotel?.zoneName, first.zoneName),
       categoryName: firstNonEmpty(storedHotel?.categoryName, first.categoryName),
@@ -441,7 +438,11 @@ export default function HotelDetailsPage() {
                 {compareRows.map((rate, idx) => {
                   const isCheapest = cheapest && Number(rate.net || 0) === Number(cheapest.net || 0);
                   const roomImages = safeParseImages(rate.roomImagesJson);
-                  const roomImage = normalizeImageUrl(roomImages[0] || rate.roomImage || rate.image || '');
+                  const roomImage =
+                    roomImages[0] ||
+                    normalizeImageUrl(rate.roomImage) ||
+                    normalizeImageUrl(rate.image) ||
+                    '';
 
                   return (
                     <div key={`${rate.rateKey || 'compare'}-${idx}`} className={`compare-card ${isCheapest ? 'cheapest' : ''}`}>
@@ -519,7 +520,11 @@ export default function HotelDetailsPage() {
                       const selected = compare.includes(key);
                       const isCheapest = cheapest && Number(rate.net || 0) === Number(cheapest.net || 0);
                       const roomImages = safeParseImages(rate.roomImagesJson);
-                      const roomImage = normalizeImageUrl(roomImages[0] || rate.roomImage || rate.image || '');
+                      const roomImage =
+                        roomImages[0] ||
+                        normalizeImageUrl(rate.roomImage) ||
+                        normalizeImageUrl(rate.image) ||
+                        '';
 
                       return (
                         <div
