@@ -3119,3 +3119,18 @@ select {
 .room-image-carousel .room-nav-btn.next {
   right: 4px;
 }
+
+.room-image-placeholder {
+  width: 120px;
+  height: 86px;
+  border-radius: 12px;
+  background: #f1f5f9;
+  flex-shrink: 0;
+}
+.room-image-placeholder {
+  width: 120px;
+  height: 86px;
+  border-radius: 12px;
+  background: #f1f5f9;
+  flex-shrink: 0;
+}

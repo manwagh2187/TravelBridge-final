@@ -84,14 +84,13 @@ function safeParseImages(value) {
   return [];
 }
 
-function getImageArray(storedHotel, first) {
+function getHotelImages(storedHotel, first) {
   const storedImages = safeParseImages(storedHotel?.imagesJson);
   const rowImages = safeParseImages(first?.imagesJson);
   const hero = normalizeImageUrl(storedHotel?.image || first?.image || '');
-
   const images = [...storedImages, ...rowImages].filter(Boolean);
   if (hero && !images.includes(hero)) images.unshift(hero);
-  return [...new Set(images)];
+  return [...new Set(images)].slice(0, 10);
 }
 
 function ImageCarousel({ images, alt, height = 220 }) {
@@ -156,88 +155,6 @@ function ImageCarousel({ images, alt, height = 220 }) {
               />
             ))}
           </div>
-        </>
-      ) : null}
-    </div>
-  );
-}
-
-function RoomImageCarousel({ images, alt }) {
-  const list = Array.isArray(images) ? images.filter(Boolean) : [];
-  const [index, setIndex] = useState(0);
-
-  useEffect(() => {
-    setIndex(0);
-  }, [list.length, alt]);
-
-  useEffect(() => {
-    if (list.length <= 1) return undefined;
-    const timer = setInterval(() => {
-      setIndex((i) => (i + 1) % list.length);
-    }, 2500);
-    return () => clearInterval(timer);
-  }, [list.length]);
-
-  if (!list.length) return null;
-
-  const active = list[index];
-
-  return (
-    <div style={{ position: 'relative', width: 120, height: 86, flexShrink: 0 }}>
-      <img
-        src={active}
-        alt={alt}
-        style={{ width: 120, height: 86, objectFit: 'cover', borderRadius: 12 }}
-      />
-
-      {list.length > 1 ? (
-        <>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIndex((i) => (i - 1 + list.length) % list.length);
-            }}
-            aria-label="Previous room image"
-            style={{
-              position: 'absolute',
-              left: 4,
-              top: '50%',
-              transform: 'translateY(-50%)',
-              width: 22,
-              height: 22,
-              borderRadius: '999px',
-              border: 0,
-              background: 'rgba(255,255,255,0.9)',
-              fontSize: 14,
-              lineHeight: '22px',
-            }}
-          >
-            ‹
-          </button>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIndex((i) => (i + 1) % list.length);
-            }}
-            aria-label="Next room image"
-            style={{
-              position: 'absolute',
-              right: 4,
-              top: '50%',
-              transform: 'translateY(-50%)',
-              width: 22,
-              height: 22,
-              borderRadius: '999px',
-              border: 0,
-              background: 'rgba(255,255,255,0.9)',
-              fontSize: 14,
-              lineHeight: '22px',
-            }}
-          >
-            ›
-          </button>
         </>
       ) : null}
     </div>
@@ -344,7 +261,7 @@ export default function HotelDetailsPage() {
 
   const summary = useMemo(() => {
     const first = rows[0] || {};
-    const images = getImageArray(storedHotel, first);
+    const images = getHotelImages(storedHotel, first);
 
     return {
       hotelCode: firstNonEmpty(storedHotel?.hotelCode, first.hotelCode, hotelCode),
@@ -432,8 +349,6 @@ export default function HotelDetailsPage() {
     });
   }
 
-  const galleryImages = summary.images.length ? summary.images : summary.image ? [summary.image] : [];
-
   return (
     <div className="tb-page">
       <section className="tb-hero tb-hero-details">
@@ -474,13 +389,13 @@ export default function HotelDetailsPage() {
 
             <div className="hotel-hero-side">
               <div className="hotel-map-card">
-                {galleryImages[0] ? (
-                  <ImageCarousel images={galleryImages} alt={summary.hotelName} height={220} />
+                {summary.images[0] ? (
+                  <ImageCarousel images={summary.images} alt={summary.hotelName} height={220} />
                 ) : (
                   <div className="map-pin">📍</div>
                 )}
                 <strong>Hotel images</strong>
-                <span>{galleryImages.length ? `${galleryImages.length} image(s)` : 'No images found'}</span>
+                <span>{summary.images.length ? `${summary.images.length} image(s)` : 'No images found'}</span>
               </div>
 
               <div className="hotel-score-card">
@@ -490,14 +405,6 @@ export default function HotelDetailsPage() {
               </div>
             </div>
           </div>
-
-          {galleryImages.length ? (
-            <div className="detail-gallery-strip">
-              {galleryImages.map((src, idx) => (
-                <img key={`${src}-${idx}`} src={src} alt={`${summary.hotelName} ${idx + 1}`} />
-              ))}
-            </div>
-          ) : null}
 
           <div className="hotel-details-card details-sticky">
             <div className="hotel-details-grid">
@@ -519,19 +426,20 @@ export default function HotelDetailsPage() {
               <div className="compare-grid">
                 {compareRows.map((rate, idx) => {
                   const isCheapest = cheapest && Number(rate.net || 0) === Number(cheapest.net || 0);
-                  const roomImages = safeParseImages(rate.roomImagesJson);
                   const roomImage =
-                    roomImages[0] ||
                     normalizeImageUrl(rate.roomImage) ||
                     normalizeImageUrl(rate.image) ||
                     '';
 
                   return (
                     <div key={`${rate.rateKey || 'compare'}-${idx}`} className={`compare-card ${isCheapest ? 'cheapest' : ''}`}>
-                      <RoomImageCarousel
-                        images={roomImages.length ? roomImages : [roomImage].filter(Boolean)}
-                        alt={rate.roomName || 'Room'}
-                      />
+                      {roomImage ? (
+                        <img
+                          src={roomImage}
+                          alt={rate.roomName || 'Room'}
+                          style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 14 }}
+                        />
+                      ) : null}
                       <strong>{safeText(rate.roomName, 'Room')}</strong>
                       <span>{safeText(rate.boardName, 'No board')}</span>
                       <div className="compare-price">
@@ -598,9 +506,7 @@ export default function HotelDetailsPage() {
                       const bookable = isBookable(rate);
                       const selected = compare.includes(key);
                       const isCheapest = cheapest && Number(rate.net || 0) === Number(cheapest.net || 0);
-                      const roomImages = safeParseImages(rate.roomImagesJson);
                       const roomImage =
-                        roomImages[0] ||
                         normalizeImageUrl(rate.roomImage) ||
                         normalizeImageUrl(rate.image) ||
                         '';
@@ -612,10 +518,15 @@ export default function HotelDetailsPage() {
                         >
                           <div className="hotel-rate-topline">
                             <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
-                              <RoomImageCarousel
-                                images={roomImages.length ? roomImages : [roomImage].filter(Boolean)}
-                                alt={rate.roomName || 'Room'}
-                              />
+                              {roomImage ? (
+                                <img
+                                  src={roomImage}
+                                  alt={rate.roomName || 'Room'}
+                                  style={{ width: 120, height: 86, objectFit: 'cover', borderRadius: 12 }}
+                                />
+                              ) : (
+                                <div className="room-image-placeholder" />
+                              )}
                               <div>
                                 <strong>{safeText(rate.roomName, 'Room')}</strong>
                                 <span>
@@ -672,19 +583,6 @@ export default function HotelDetailsPage() {
                               <span>Adults: {safeText(rate.adults)}</span>
                               <span>Children: {safeText(rate.children)}</span>
                               <span>Cancellation from: {safeText(rate.cancellationFrom)}</span>
-
-                              {roomImages.length > 1 ? (
-                                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
-                                  {roomImages.slice(0, 4).map((src, i) => (
-                                    <img
-                                      key={`${src}-${i}`}
-                                      src={src}
-                                      alt={`${rate.roomName || 'Room'} ${i + 1}`}
-                                      style={{ width: 72, height: 56, objectFit: 'cover', borderRadius: 10 }}
-                                    />
-                                  ))}
-                                </div>
-                              ) : null}
                             </div>
                           ) : null}
                         </div>
