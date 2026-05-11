@@ -3020,3 +3020,54 @@ select {
 .map-thumb-dot.active {
   background: #2563eb;
 }
+
+.map-item img {
+  display: block;
+  width: 100%;
+  border-radius: 12px;
+}
+
+.map-thumb-dots {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.map-thumb-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #cbd5e1;
+  display: inline-block;
+}
+
+.map-thumb-dot.active {
+  background: #2563eb;
+}
+
+.map-item img {
+  display: block;
+  width: 100%;
+  border-radius: 12px;
+}
+
+.map-thumb-dots {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.map-thumb-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #cbd5e1;
+  border: 0;
+  padding: 0;
+}
+
+.map-thumb-dot.active {
+  background: #2563eb;
+}

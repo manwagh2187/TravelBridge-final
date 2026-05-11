@@ -114,8 +114,8 @@ export default function HotelCard({ hotel, query, selected = false, onSelect }) 
           zoneName: hotel?.zoneName || '',
           categoryName: hotel?.categoryName || '',
           rates: hotel?.rates || [],
-          image: heroImage,
-          imagesJson: JSON.stringify(images),
+          image: heroImage || hotel?.image || '',
+          imagesJson: images.length ? JSON.stringify(images) : (hotel?.imagesJson || '[]'),
           roomImage: hotel?.roomImage || '',
           roomImagesJson: hotel?.roomImagesJson || '[]',
         })

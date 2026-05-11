@@ -1,3 +1,4 @@
+import MapHotelCard from '../components/MapHotelCard';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
@@ -675,83 +676,18 @@ export default function Home() {
 
              <div className="map-modal-results">
   {filteredHotels.length ? (
-    filteredHotels.map((hotel) => {
-      const images = (() => {
-        try {
-          const rawCandidates = [
-            hotel?.imagesJson,
-            hotel?.roomImagesJson,
-            hotel?.image,
-            hotel?.roomImage,
-          ];
-
-          for (const raw of rawCandidates) {
-            if (!raw) continue;
-
-            if (Array.isArray(raw)) {
-              return raw.filter(Boolean);
-            }
-
-            if (typeof raw === 'string' && raw.trim().startsWith('[')) {
-              const parsed = JSON.parse(raw);
-              if (Array.isArray(parsed)) return parsed.filter(Boolean);
-            }
-
-            if (typeof raw === 'string' && raw.trim()) {
-              return [raw];
-            }
-          }
-
-          return [];
-        } catch {
-          return [];
-        }
-      })();
-
-      const [active, setActive] = [0, null];
-      const hero = images[0] || hotel?.image || hotel?.roomImage || '';
-
-      return (
-        <button
-          key={hotel.hotelCode}
-          type="button"
-          className={`map-item ${selectedHotel?.hotelCode === hotel.hotelCode ? 'active' : ''}`}
-          onClick={() => {
-            setSelectedHotel(hotel);
-            scrollHotelCardIntoView(hotel.hotelCode);
-          }}
-        >
-          {hero ? (
-            <img
-              src={hero}
-              alt={hotel.hotelName}
-              style={{
-                width: '100%',
-                height: 110,
-                objectFit: 'cover',
-                borderRadius: 12,
-                marginBottom: 8,
-              }}
-            />
-          ) : null}
-
-          <strong>{hotel.hotelName}</strong>
-          <span>{hotel.cheapestRate?.roomName || 'Room'} • {hotel.cheapestRate?.boardName || 'No board'}</span>
-          <span>{hotel.destinationName || hotel.zoneName || destination}</span>
-          <span className="mini-price">
-            {hotel.currency || 'INR'} {hotel.minPrice || 0}
-          </span>
-
-          {images.length > 1 ? (
-            <div className="map-thumb-dots">
-              {images.slice(0, 4).map((_, idx) => (
-                <span key={idx} className={`map-thumb-dot ${idx === 0 ? 'active' : ''}`} />
-              ))}
-            </div>
-          ) : null}
-        </button>
-      );
-    })
+    filteredHotels.map((hotel) => (
+      <MapHotelCard
+        key={hotel.hotelCode}
+        hotel={hotel}
+        destination={destination}
+        selected={selectedHotel?.hotelCode === hotel.hotelCode}
+        onSelect={() => {
+          setSelectedHotel(hotel);
+          scrollHotelCardIntoView(hotel.hotelCode);
+        }}
+      />
+    ))
   ) : (
     <div className="map-empty">No hotel results yet. Search first to load hotels.</div>
   )}

@@ -262,11 +262,14 @@ export default function HotelDetailsPage() {
 
   const summary = useMemo(() => {
     const first = rows[0] || {};
+    const storedName = safeText(storedHotel?.hotelName, '');
+    const firstName = safeText(first.hotelName, '');
+    const hotelName = storedName || firstName || 'Hotel details';
     const images = getImageArray(storedHotel, first);
 
     return {
       hotelCode: firstNonEmpty(storedHotel?.hotelCode, first.hotelCode, hotelCode),
-      hotelName: firstNonEmpty(storedHotel?.hotelName, first.hotelName, 'Hotel details'),
+      hotelName,
       destinationName: firstNonEmpty(storedHotel?.destinationName, first.destinationName, destination),
       zoneName: firstNonEmpty(storedHotel?.zoneName, first.zoneName),
       categoryName: firstNonEmpty(storedHotel?.categoryName, first.categoryName),
@@ -438,7 +441,7 @@ export default function HotelDetailsPage() {
                 {compareRows.map((rate, idx) => {
                   const isCheapest = cheapest && Number(rate.net || 0) === Number(cheapest.net || 0);
                   const roomImages = safeParseImages(rate.roomImagesJson);
-                  const roomImage = normalizeImageUrl(rate.roomImage || roomImages[0] || galleryImages[0] || summary.image || '');
+                  const roomImage = normalizeImageUrl(roomImages[0] || rate.roomImage || rate.image || '');
 
                   return (
                     <div key={`${rate.rateKey || 'compare'}-${idx}`} className={`compare-card ${isCheapest ? 'cheapest' : ''}`}>
@@ -516,7 +519,7 @@ export default function HotelDetailsPage() {
                       const selected = compare.includes(key);
                       const isCheapest = cheapest && Number(rate.net || 0) === Number(cheapest.net || 0);
                       const roomImages = safeParseImages(rate.roomImagesJson);
-                      const roomImage = normalizeImageUrl(rate.roomImage || roomImages[0] || galleryImages[0] || summary.image || '');
+                      const roomImage = normalizeImageUrl(roomImages[0] || rate.roomImage || rate.image || '');
 
                       return (
                         <div
