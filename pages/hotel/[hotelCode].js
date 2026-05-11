@@ -70,7 +70,7 @@ function normalizeImageUrl(img) {
   return `https://photos.hotelbeds.com/giata/${value.replace(/^\/+/, '')}`;
 }
 
-function parseImages(value) {
+function safeParseImages(value) {
   try {
     if (!value) return [];
     if (Array.isArray(value)) return value.map(normalizeImageUrl).filter(Boolean);
@@ -82,6 +82,129 @@ function parseImages(value) {
     // ignore
   }
   return [];
+}
+
+function getImageArray(storedHotel, first) {
+  const storedImages = safeParseImages(storedHotel?.imagesJson);
+  const rowImages = safeParseImages(first?.imagesJson);
+  const hero = normalizeImageUrl(storedHotel?.image || first?.image || '');
+
+  const images = [...storedImages, ...rowImages].filter(Boolean);
+  if (hero && !images.includes(hero)) images.unshift(hero);
+  return [...new Set(images)];
+}
+
+function ImageCarousel({ images, alt, height = 220 }) {
+  const [index, setIndex] = useState(0);
+  const list = Array.isArray(images) ? images.filter(Boolean) : [];
+  const active = list[index] || '';
+
+  useEffect(() => {
+    setIndex(0);
+  }, [list.length]);
+
+  useEffect(() => {
+    if (index >= list.length) setIndex(0);
+  }, [index, list.length]);
+
+  useEffect(() => {
+    if (list.length <= 1) return undefined;
+    const timer = setInterval(() => {
+      setIndex((i) => (i + 1) % list.length);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, [list.length]);
+
+  if (!list.length) return null;
+
+  const prev = (e) => {
+    e?.stopPropagation?.();
+    setIndex((i) => (i - 1 + list.length) % list.length);
+  };
+
+  const next = (e) => {
+    e?.stopPropagation?.();
+    setIndex((i) => (i + 1) % list.length);
+  };
+
+  return (
+    <div style={{ position: 'relative', width: '100%' }}>
+      <img
+        src={active}
+        alt={alt}
+        style={{ width: '100%', height, objectFit: 'cover', borderRadius: 14 }}
+      />
+      {list.length > 1 ? (
+        <>
+          <button type="button" onClick={prev} aria-label="Previous image" style={navBtnStyle('left')}>
+            ‹
+          </button>
+          <button type="button" onClick={next} aria-label="Next image" style={navBtnStyle('right')}>
+            ›
+          </button>
+          <div style={dotsWrapStyle()}>
+            {list.slice(0, 8).map((src, i) => (
+              <button
+                key={`${src}-${i}`}
+                type="button"
+                aria-label={`Image ${i + 1}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIndex(i);
+                }}
+                style={dotStyle(i === index)}
+              />
+            ))}
+          </div>
+        </>
+      ) : null}
+    </div>
+  );
+}
+
+function navBtnStyle(side) {
+  return {
+    position: 'absolute',
+    top: '50%',
+    [side]: 12,
+    transform: 'translateY(-50%)',
+    width: 34,
+    height: 34,
+    borderRadius: '999px',
+    border: 0,
+    background: 'rgba(255,255,255,0.9)',
+    color: '#111827',
+    fontSize: '1.5rem',
+    fontWeight: 800,
+    display: 'grid',
+    placeItems: 'center',
+    cursor: 'pointer',
+  };
+}
+
+function dotsWrapStyle() {
+  return {
+    position: 'absolute',
+    left: 10,
+    right: 10,
+    bottom: 10,
+    display: 'flex',
+    gap: 6,
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+  };
+}
+
+function dotStyle(active) {
+  return {
+    width: 8,
+    height: 8,
+    borderRadius: '999px',
+    border: 0,
+    background: active ? '#ffffff' : 'rgba(255,255,255,0.65)',
+    padding: 0,
+    cursor: 'pointer',
+  };
 }
 
 export default function HotelDetailsPage() {
@@ -139,6 +262,8 @@ export default function HotelDetailsPage() {
 
   const summary = useMemo(() => {
     const first = rows[0] || {};
+    const images = getImageArray(storedHotel, first);
+
     return {
       hotelCode: firstNonEmpty(storedHotel?.hotelCode, first.hotelCode, hotelCode),
       hotelName: firstNonEmpty(storedHotel?.hotelName, first.hotelName, 'Hotel details'),
@@ -146,8 +271,8 @@ export default function HotelDetailsPage() {
       zoneName: firstNonEmpty(storedHotel?.zoneName, first.zoneName),
       categoryName: firstNonEmpty(storedHotel?.categoryName, first.categoryName),
       stars: parseStars(storedHotel || first),
-      images: parseImages(storedHotel?.imagesJson || first.imagesJson),
-      image: normalizeImageUrl(storedHotel?.image || first.image || ''),
+      images,
+      image: images[0] || normalizeImageUrl(storedHotel?.image || first.image || ''),
     };
   }, [rows, storedHotel, hotelCode, destination]);
 
@@ -268,11 +393,7 @@ export default function HotelDetailsPage() {
             <div className="hotel-hero-side">
               <div className="hotel-map-card">
                 {galleryImages[0] ? (
-                  <img
-                    src={galleryImages[0]}
-                    alt={summary.hotelName}
-                    style={{ width: '100%', height: 220, objectFit: 'cover', borderRadius: 14 }}
-                  />
+                  <ImageCarousel images={galleryImages} alt={summary.hotelName} height={220} />
                 ) : (
                   <div className="map-pin">📍</div>
                 )}
@@ -316,7 +437,7 @@ export default function HotelDetailsPage() {
               <div className="compare-grid">
                 {compareRows.map((rate, idx) => {
                   const isCheapest = cheapest && Number(rate.net || 0) === Number(cheapest.net || 0);
-                  const roomImages = parseImages(rate.roomImagesJson);
+                  const roomImages = safeParseImages(rate.roomImagesJson);
                   const roomImage = normalizeImageUrl(rate.roomImage || roomImages[0] || galleryImages[0] || summary.image || '');
 
                   return (
@@ -394,7 +515,7 @@ export default function HotelDetailsPage() {
                       const bookable = isBookable(rate);
                       const selected = compare.includes(key);
                       const isCheapest = cheapest && Number(rate.net || 0) === Number(cheapest.net || 0);
-                      const roomImages = parseImages(rate.roomImagesJson);
+                      const roomImages = safeParseImages(rate.roomImagesJson);
                       const roomImage = normalizeImageUrl(rate.roomImage || roomImages[0] || galleryImages[0] || summary.image || '');
 
                       return (

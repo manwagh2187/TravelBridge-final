@@ -674,29 +674,79 @@ export default function Home() {
               </div>
 
               <div className="map-modal-results">
-                {filteredHotels.length ? (
-                  filteredHotels.map((hotel) => (
-                    <button
-                      key={hotel.hotelCode}
-                      type="button"
-                      className={`map-item ${selectedHotel?.hotelCode === hotel.hotelCode ? 'active' : ''}`}
-                      onClick={() => {
-                        setSelectedHotel(hotel);
-                        scrollHotelCardIntoView(hotel.hotelCode);
-                      }}
-                    >
-                      <strong>{hotel.hotelName}</strong>
-                      <span>{hotel.cheapestRate?.roomName || 'Room'} • {hotel.cheapestRate?.boardName || 'No board'}</span>
-                      <span>{hotel.destinationName || hotel.zoneName || destination}</span>
-                      <span className="mini-price">
-                        {hotel.currency || 'INR'} {hotel.minPrice || 0}
-                      </span>
-                    </button>
-                  ))
-                ) : (
-                  <div className="map-empty">No hotel results yet. Search first to load hotels.</div>
-                )}
-              </div>
+  {filteredHotels.length ? (
+    filteredHotels.map((hotel) => {
+      const rawImages = (() => {
+        try {
+          const candidates = [
+            hotel?.imagesJson,
+            hotel?.roomImagesJson,
+            hotel?.image,
+            hotel?.roomImage,
+          ];
+
+          for (const candidate of candidates) {
+            if (!candidate) continue;
+
+            if (Array.isArray(candidate)) {
+              return candidate.filter(Boolean);
+            }
+
+            if (typeof candidate === 'string' && candidate.trim().startsWith('[')) {
+              const parsed = JSON.parse(candidate);
+              if (Array.isArray(parsed)) return parsed.filter(Boolean);
+            }
+
+            if (typeof candidate === 'string' && candidate.trim()) {
+              return [candidate];
+            }
+          }
+
+          return [];
+        } catch {
+          return [];
+        }
+      })();
+
+      const hero = rawImages[0] || hotel?.image || hotel?.roomImage || '';
+
+      return (
+        <button
+          key={hotel.hotelCode}
+          type="button"
+          className={`map-item ${selectedHotel?.hotelCode === hotel.hotelCode ? 'active' : ''}`}
+          onClick={() => {
+            setSelectedHotel(hotel);
+            scrollHotelCardIntoView(hotel.hotelCode);
+          }}
+        >
+          {hero ? (
+            <img
+              src={hero}
+              alt={hotel.hotelName}
+              style={{
+                width: '100%',
+                height: 110,
+                objectFit: 'cover',
+                borderRadius: 12,
+                marginBottom: 8,
+              }}
+            />
+          ) : null}
+
+          <strong>{hotel.hotelName}</strong>
+          <span>{hotel.cheapestRate?.roomName || 'Room'} • {hotel.cheapestRate?.boardName || 'No board'}</span>
+          <span>{hotel.destinationName || hotel.zoneName || destination}</span>
+          <span className="mini-price">
+            {hotel.currency || 'INR'} {hotel.minPrice || 0}
+          </span>
+        </button>
+      );
+    })
+  ) : (
+    <div className="map-empty">No hotel results yet. Search first to load hotels.</div>
+  )}
+</div>
             </div>
           </div>
         </div>

@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
 
 function formatPrice(value) {
@@ -26,17 +27,39 @@ function normalizeImageUrl(img) {
   return `https://photos.hotelbeds.com/giata/${value.replace(/^\/+/, '')}`;
 }
 
-function parseImages(hotel) {
+function safeParseImages(value) {
   try {
-    if (hotel?.image) return [normalizeImageUrl(hotel.image)].filter(Boolean);
-    if (Array.isArray(hotel?.images)) return hotel.images.map(normalizeImageUrl).filter(Boolean);
-    if (typeof hotel?.imagesJson === 'string') {
-      const parsed = JSON.parse(hotel.imagesJson);
+    if (!value) return [];
+    if (Array.isArray(value)) return value.map(normalizeImageUrl).filter(Boolean);
+    if (typeof value === 'string') {
+      const parsed = JSON.parse(value);
       if (Array.isArray(parsed)) return parsed.map(normalizeImageUrl).filter(Boolean);
     }
   } catch {
     // ignore
   }
+  return [];
+}
+
+function getHotelImages(hotel, cheapest) {
+  const candidates = [
+    hotel?.image,
+    hotel?.imagesJson,
+    hotel?.images,
+    hotel?.roomImage,
+    hotel?.roomImagesJson,
+    cheapest?.image,
+    cheapest?.imagesJson,
+    cheapest?.images,
+    cheapest?.roomImage,
+    cheapest?.roomImagesJson,
+  ];
+
+  for (const candidate of candidates) {
+    const images = safeParseImages(candidate);
+    if (images.length) return images;
+  }
+
   return [];
 }
 
@@ -56,8 +79,27 @@ export default function HotelCard({ hotel, query, selected = false, onSelect }) 
   const stars = parseStars(hotel?.categoryName);
   const reviewText = reviewLabel(stars);
   const initial = (title || 'H').charAt(0).toUpperCase();
-  const images = parseImages(hotel);
-  const heroImage = images[0] || '';
+
+  const images = useMemo(() => getHotelImages(hotel, cheapest), [hotel, cheapest]);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const imageCount = images.length;
+  const heroImage = images[activeImageIndex] || '';
+
+  useEffect(() => {
+    setActiveImageIndex(0);
+  }, [hotelCode]);
+
+  useEffect(() => {
+    if (activeImageIndex >= imageCount) setActiveImageIndex(0);
+  }, [activeImageIndex, imageCount]);
+
+  useEffect(() => {
+    if (imageCount <= 1) return undefined;
+    const timer = setInterval(() => {
+      setActiveImageIndex((idx) => (idx + 1) % imageCount);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, [imageCount]);
 
   function goToDetails(e) {
     e?.stopPropagation?.();
@@ -96,13 +138,20 @@ export default function HotelCard({ hotel, query, selected = false, onSelect }) 
     onSelect?.();
   }
 
+  function prevImage(e) {
+    e?.stopPropagation?.();
+    if (!imageCount) return;
+    setActiveImageIndex((idx) => (idx - 1 + imageCount) % imageCount);
+  }
+
+  function nextImage(e) {
+    e?.stopPropagation?.();
+    if (!imageCount) return;
+    setActiveImageIndex((idx) => (idx + 1) % imageCount);
+  }
+
   return (
-    <article
-      className={`hotel-card ${selected ? 'selected' : ''}`}
-      onClick={handleSelect}
-      role="button"
-      tabIndex={0}
-    >
+    <article className={`hotel-card ${selected ? 'selected' : ''}`} onClick={handleSelect} role="button" tabIndex={0}>
       <div className="hotel-thumb">
         {heroImage ? (
           <img
@@ -114,9 +163,37 @@ export default function HotelCard({ hotel, query, selected = false, onSelect }) 
             }}
           />
         ) : null}
+
+        {imageCount > 1 ? (
+          <>
+            <button type="button" className="hotel-thumb-nav hotel-thumb-nav-prev" onClick={prevImage} aria-label="Previous image">
+              ‹
+            </button>
+            <button type="button" className="hotel-thumb-nav hotel-thumb-nav-next" onClick={nextImage} aria-label="Next image">
+              ›
+            </button>
+
+            <div className="hotel-thumb-dots">
+              {images.slice(0, 6).map((src, idx) => (
+                <button
+                  key={`${src}-${idx}`}
+                  type="button"
+                  className={`hotel-thumb-dot ${idx === activeImageIndex ? 'active' : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveImageIndex(idx);
+                  }}
+                  aria-label={`Show image ${idx + 1}`}
+                />
+              ))}
+            </div>
+          </>
+        ) : null}
+
         <div className="hotel-thumb-badge">
           {stars ? `${stars} STAR${stars > 1 ? 'S' : ''}` : 'HOTEL'}
         </div>
+
         {!heroImage ? <div className="hotel-thumb-letter">{initial}</div> : null}
         <div className="hotel-thumb-score">{stars ? `${stars}.0` : '8.5'}</div>
       </div>
