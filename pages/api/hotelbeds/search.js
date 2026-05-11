@@ -273,20 +273,35 @@ export default async function handler(req, res) {
     }
 
     const mergedResults = baseResults.map((row) => {
-      const content = contentByCode.get(String(row.hotelCode || '').trim()) || {};
-      const contentHotelImages = content.hotelImages || [];
-      const contentRoomImages = Array.isArray(content.roomImagesByRoomCode?.[String(row.roomCode || '').trim()])
-        ? content.roomImagesByRoomCode[String(row.roomCode || '').trim()]
-        : [];
+  const content = contentByCode.get(String(row.hotelCode || '').trim()) || {};
+  const contentHotelImages = Array.isArray(content.hotelImages) ? content.hotelImages : [];
+  const contentRoomImages = Array.isArray(content.roomImagesByRoomCode?.[String(row.roomCode || '').trim()])
+    ? content.roomImagesByRoomCode[String(row.roomCode || '').trim()]
+    : [];
 
-      return {
-        ...row,
-        image: contentHotelImages[0] || row.image || '',
-        imagesJson: JSON.stringify(contentHotelImages.length ? contentHotelImages : JSON.parse(row.imagesJson || '[]')),
-        roomImage: contentRoomImages[0] || row.roomImage || '',
-        roomImagesJson: JSON.stringify(contentRoomImages.length ? contentRoomImages : JSON.parse(row.roomImagesJson || '[]')),
-      };
-    });
+  let existingHotelImages = [];
+  let existingRoomImages = [];
+
+  try {
+    existingHotelImages = Array.isArray(row.imagesJson) ? row.imagesJson : JSON.parse(row.imagesJson || '[]');
+  } catch {
+    existingHotelImages = row.image ? [row.image] : [];
+  }
+
+  try {
+    existingRoomImages = Array.isArray(row.roomImagesJson) ? row.roomImagesJson : JSON.parse(row.roomImagesJson || '[]');
+  } catch {
+    existingRoomImages = row.roomImage ? [row.roomImage] : [];
+  }
+
+  return {
+    ...row,
+    image: contentHotelImages[0] || row.image || existingHotelImages[0] || '',
+    imagesJson: JSON.stringify(contentHotelImages.length ? contentHotelImages : existingHotelImages),
+    roomImage: contentRoomImages[0] || row.roomImage || row.image || existingRoomImages[0] || '',
+    roomImagesJson: JSON.stringify(contentRoomImages.length ? contentRoomImages : existingRoomImages),
+  };
+});
 
     const hotelIndex = {};
     for (const row of mergedResults) {

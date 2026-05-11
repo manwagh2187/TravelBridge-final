@@ -673,32 +673,32 @@ export default function Home() {
                 ) : null}
               </div>
 
-              <div className="map-modal-results">
+             <div className="map-modal-results">
   {filteredHotels.length ? (
     filteredHotels.map((hotel) => {
-      const rawImages = (() => {
+      const images = (() => {
         try {
-          const candidates = [
+          const rawCandidates = [
             hotel?.imagesJson,
             hotel?.roomImagesJson,
             hotel?.image,
             hotel?.roomImage,
           ];
 
-          for (const candidate of candidates) {
-            if (!candidate) continue;
+          for (const raw of rawCandidates) {
+            if (!raw) continue;
 
-            if (Array.isArray(candidate)) {
-              return candidate.filter(Boolean);
+            if (Array.isArray(raw)) {
+              return raw.filter(Boolean);
             }
 
-            if (typeof candidate === 'string' && candidate.trim().startsWith('[')) {
-              const parsed = JSON.parse(candidate);
+            if (typeof raw === 'string' && raw.trim().startsWith('[')) {
+              const parsed = JSON.parse(raw);
               if (Array.isArray(parsed)) return parsed.filter(Boolean);
             }
 
-            if (typeof candidate === 'string' && candidate.trim()) {
-              return [candidate];
+            if (typeof raw === 'string' && raw.trim()) {
+              return [raw];
             }
           }
 
@@ -708,7 +708,8 @@ export default function Home() {
         }
       })();
 
-      const hero = rawImages[0] || hotel?.image || hotel?.roomImage || '';
+      const [active, setActive] = [0, null];
+      const hero = images[0] || hotel?.image || hotel?.roomImage || '';
 
       return (
         <button
@@ -740,6 +741,14 @@ export default function Home() {
           <span className="mini-price">
             {hotel.currency || 'INR'} {hotel.minPrice || 0}
           </span>
+
+          {images.length > 1 ? (
+            <div className="map-thumb-dots">
+              {images.slice(0, 4).map((_, idx) => (
+                <span key={idx} className={`map-thumb-dot ${idx === 0 ? 'active' : ''}`} />
+              ))}
+            </div>
+          ) : null}
         </button>
       );
     })
