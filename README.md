@@ -48,3 +48,22 @@ The service supports pricing flight offers through Amadeus Flight Offers Pricing
 
 - `POST /api/flights/book`  
   Currently validates payload and returns a `not_implemented` response.
+
+  ### Flight booking (production-ready)
+
+`POST /api/flights/book` now forwards validated payloads to Amadeus Flight Orders API.
+
+#### Validation
+- Enforced with Joi schema (`src/validation/flightBookingSchema.js`)
+- Requires:
+  - `data.type = "flight-order"`
+  - at least one `flightOffers[]`
+  - at least one `travelers[]` with name, DOB, contact, documents
+
+#### Error handling
+- Upstream Amadeus errors are mapped through `src/utils/errorMapper.js`
+- Sensitive fields (tokens, headers, stack traces) are never exposed in API responses
+- Client receives safe shape:
+  - `error`
+  - `status` (mapped HTTP code)
+  - `details[]` (sanitized code/title/detail/source)

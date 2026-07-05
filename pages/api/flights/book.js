@@ -9,6 +9,10 @@ export default async function handler(req, res) {
     const result = await bookFlight(req.body || {});
     return res.status(200).json(result);
   } catch (error) {
-    return res.status(400).json({ error: error?.message || 'Booking failed' });
+    const status = error?.statusCode || 400;
+    return res.status(status).json({
+      error: error?.message || 'Booking failed',
+      details: error?.details || []
+    });
   }
 }
