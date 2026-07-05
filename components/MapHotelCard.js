@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/router';
 
 function normalizeImageUrl(img) {
   if (!img) return '';
@@ -39,6 +40,7 @@ function getImages(hotel) {
 }
 
 export default function MapHotelCard({ hotel, selected = false, onSelect, destination }) {
+  const router = useRouter();
   const images = useMemo(() => getImages(hotel), [hotel]);
   const [active, setActive] = useState(0);
 
@@ -56,11 +58,31 @@ export default function MapHotelCard({ hotel, selected = false, onSelect, destin
 
   const activeImage = images[active] || images[0] || hotel?.image || hotel?.roomImage || '';
 
+  function handleClick(e) {
+    e?.stopPropagation?.();
+
+    if (hotel?.hotelCode) {
+      router.push({
+        pathname: `/hotel/${hotel.hotelCode}`,
+        query: {
+          destination: hotel?.destinationCode || destination || '',
+          checkIn: router.query.checkIn || '',
+          checkOut: router.query.checkOut || '',
+          guests: router.query.guests || '',
+          hotelCode: hotel.hotelCode,
+        },
+      });
+      return;
+    }
+
+    onSelect?.();
+  }
+
   return (
     <button
       type="button"
       className={`map-item ${selected ? 'active' : ''}`}
-      onClick={onSelect}
+      onClick={handleClick}
     >
       {activeImage ? (
         <div style={{ position: 'relative', marginBottom: 8 }}>

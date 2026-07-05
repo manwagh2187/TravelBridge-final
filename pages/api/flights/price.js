@@ -9,6 +9,14 @@ export default async function handler(req, res) {
     const result = await priceFlight(req.body || {});
     return res.status(200).json(result);
   } catch (error) {
-    return res.status(400).json({ error: error?.message || 'Pricing failed' });
+    const status = error?.response?.status || error?.statusCode || 400;
+    const upstream = error?.response?.data;
+    const message =
+      upstream?.errors?.[0]?.detail ||
+      upstream?.error_description ||
+      error?.message ||
+      'Pricing failed';
+
+    return res.status(status).json({ error: message });
   }
 }

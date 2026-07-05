@@ -20,16 +20,25 @@ export default function Header() {
         </Link>
 
         <nav className="tb-nav">
-          <Link href="/" className={`tb-nav-link ${router.pathname === '/' ? 'tb-nav-link-active' : ''}`}>
-            Hotels
-          </Link>
-          <Link href="/" className="tb-nav-link">
-            Hotels &amp; Homes
-          </Link>
-          <Link href="/bookings" className={`tb-nav-link ${router.pathname === '/bookings' ? 'tb-nav-link-active' : ''}`}>
-            My bookings
-          </Link>
-        </nav>
+  <Link href="/" className={`tb-nav-link ${router.pathname === '/' ? 'tb-nav-link-active' : ''}`}>
+    Hotels
+  </Link>
+
+  <Link
+    href="/flights"
+    className={`tb-nav-link ${router.pathname === '/flights' ? 'tb-nav-link-active' : ''}`}
+  >
+    Flights
+  </Link>
+
+  <Link href="/" className="tb-nav-link">
+    Hotels &amp; Homes
+  </Link>
+
+  <Link href="/bookings" className={`tb-nav-link ${router.pathname === '/bookings' ? 'tb-nav-link-active' : ''}`}>
+    My bookings
+  </Link>
+</nav>
 
         <div className="tb-topbar-actions">
           {isAuthenticated ? (

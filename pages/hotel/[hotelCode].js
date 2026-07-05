@@ -88,12 +88,14 @@ function getHotelImages(storedHotel, first) {
   const storedImages = safeParseImages(storedHotel?.imagesJson);
   const rowImages = safeParseImages(first?.imagesJson);
   const hero = normalizeImageUrl(storedHotel?.image || first?.image || '');
+
   const images = [...storedImages, ...rowImages].filter(Boolean);
   if (hero && !images.includes(hero)) images.unshift(hero);
+
   return [...new Set(images)].slice(0, 10);
 }
 
-function ImageCarousel({ images, alt, height = 220 }) {
+function ImageCarousel({ images, alt, height = 220, onOpen }) {
   const [index, setIndex] = useState(0);
   const list = Array.isArray(images) ? images.filter(Boolean) : [];
   const active = list[index] || '';
@@ -126,13 +128,32 @@ function ImageCarousel({ images, alt, height = 220 }) {
     setIndex((i) => (i + 1) % list.length);
   };
 
+  const open = () => {
+    onOpen?.(list, index);
+  };
+
   return (
     <div style={{ position: 'relative', width: '100%' }}>
-      <img
-        src={active}
-        alt={alt}
-        style={{ width: '100%', height, objectFit: 'cover', borderRadius: 14 }}
-      />
+      <button
+        type="button"
+        onClick={open}
+        style={{
+          all: 'unset',
+          cursor: 'zoom-in',
+          display: 'block',
+          width: '100%',
+          borderRadius: 14,
+          overflow: 'hidden',
+        }}
+        aria-label="Open image"
+      >
+        <img
+          src={active}
+          alt={alt}
+          style={{ width: '100%', height, objectFit: 'cover', borderRadius: 14, display: 'block' }}
+        />
+      </button>
+
       {list.length > 1 ? (
         <>
           <button type="button" onClick={prev} aria-label="Previous image" style={navBtnStyle('left')}>
@@ -219,6 +240,9 @@ export default function HotelDetailsPage() {
   const [searchText, setSearchText] = useState('');
   const [expandedKey, setExpandedKey] = useState('');
   const [compare, setCompare] = useState([]);
+  const [imageModalOpen, setImageModalOpen] = useState(false);
+  const [imageModalImages, setImageModalImages] = useState([]);
+  const [imageModalIndex, setImageModalIndex] = useState(0);
 
   useEffect(() => {
     if (!router.isReady || !hotelCode) return;
@@ -349,6 +373,12 @@ export default function HotelDetailsPage() {
     });
   }
 
+  function openImageModal(images, startIndex = 0) {
+    setImageModalImages(Array.isArray(images) ? images.filter(Boolean) : []);
+    setImageModalIndex(startIndex);
+    setImageModalOpen(true);
+  }
+
   return (
     <div className="tb-page">
       <section className="tb-hero tb-hero-details">
@@ -390,7 +420,12 @@ export default function HotelDetailsPage() {
             <div className="hotel-hero-side">
               <div className="hotel-map-card">
                 {summary.images[0] ? (
-                  <ImageCarousel images={summary.images} alt={summary.hotelName} height={220} />
+                  <ImageCarousel
+                    images={summary.images}
+                    alt={summary.hotelName}
+                    height={220}
+                    onOpen={openImageModal}
+                  />
                 ) : (
                   <div className="map-pin">📍</div>
                 )}
@@ -597,6 +632,112 @@ export default function HotelDetailsPage() {
           </div>
         </div>
       </section>
+
+      {imageModalOpen ? (
+        <div
+          onClick={() => setImageModalOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.82)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 20,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: 'min(1200px, 96vw)',
+              maxHeight: '92vh',
+              background: '#fff',
+              borderRadius: 20,
+              padding: 16,
+              overflow: 'hidden',
+              display: 'grid',
+              gap: 16,
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <strong style={{ fontSize: 18 }}>{summary.hotelName} — images</strong>
+              <button type="button" className="btn btn-outline" onClick={() => setImageModalOpen(false)}>
+                Close
+              </button>
+            </div>
+
+            <div style={{ position: 'relative' }}>
+              <img
+                src={imageModalImages[imageModalIndex]}
+                alt={`${summary.hotelName} ${imageModalIndex + 1}`}
+                style={{
+                  width: '100%',
+                  height: '72vh',
+                  objectFit: 'contain',
+                  background: '#000',
+                  borderRadius: 16,
+                  display: 'block',
+                }}
+              />
+
+              {imageModalImages.length > 1 ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setImageModalIndex((i) => (i - 1 + imageModalImages.length) % imageModalImages.length)}
+                    style={navBtnStyle('left')}
+                    aria-label="Previous image"
+                  >
+                    ‹
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setImageModalIndex((i) => (i + 1) % imageModalImages.length)}
+                    style={navBtnStyle('right')}
+                    aria-label="Next image"
+                  >
+                    ›
+                  </button>
+                </>
+              ) : null}
+            </div>
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))',
+                gap: 10,
+                maxHeight: 150,
+                overflow: 'auto',
+                paddingRight: 4,
+              }}
+            >
+              {imageModalImages.map((src, idx) => (
+                <button
+                  key={`${src}-${idx}`}
+                  type="button"
+                  onClick={() => setImageModalIndex(idx)}
+                  style={{
+                    border: idx === imageModalIndex ? '2px solid #2563eb' : '1px solid #e2e8f0',
+                    borderRadius: 12,
+                    overflow: 'hidden',
+                    padding: 0,
+                    background: '#fff',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <img
+                    src={src}
+                    alt={`thumb-${idx + 1}`}
+                    style={{ width: '100%', height: 76, objectFit: 'cover', display: 'block' }}
+                  />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
