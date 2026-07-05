@@ -22,3 +22,18 @@ A Next.js + Prisma + PostgreSQL hotel booking MVP with Stripe checkout.
 ### 1. Install dependencies
 ```bash
 npm install
+## Flight Pricing and Booking (Amadeus)
+
+### Pricing endpoint behavior
+
+The service supports pricing flight offers through Amadeus Flight Offers Pricing API.
+
+- Service method: `priceFlight(payload)`
+- Required payload shape:
+  ```json
+  {
+    "data": {
+      "type": "flight-offers-pricing",
+      "flightOffers": [ /* one or more offers */ ]
+    }
+  }
