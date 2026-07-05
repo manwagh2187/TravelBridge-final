@@ -37,3 +37,14 @@ The service supports pricing flight offers through Amadeus Flight Offers Pricing
       "flightOffers": [ /* one or more offers */ ]
     }
   }
+
+  ### Flight API endpoints
+
+- `GET /api/flights/search`  
+  Query params are forwarded to Amadeus flight offers search.
+
+- `POST /api/flights/price`  
+  Prices selected flight offers via Amadeus pricing API.
+
+- `POST /api/flights/book`  
+  Currently validates payload and returns a `not_implemented` response.
